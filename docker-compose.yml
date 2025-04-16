@@ -1,11 +1,6 @@
-version: "3.8"
-
 services:
   frontend:
-    build:
-      context: ./FocusHub-app
-      dockerfile: Dockerfile
-      target: development
+    image: pholcast25/focus-hub-frontend:latest  # Usando la imagen del frontend subida a Docker Hub
     command: npm run start
     volumes:
       - ./FocusHub-app:/app
@@ -14,96 +9,11 @@ services:
       - "4200:4200"
     depends_on:
       - backend
-    environment:
-      API_URL: http://backend:3000
 
   backend:
-    build:
-      context: ./focus-hub-backend
-      dockerfile: Dockerfile
-      target: development
+    image: pholcast25/focus-hub-backend:latest  # Usando la imagen del backend subida a Docker Hub
     command: npm run start:dev
     volumes:
       - ./focus-hub-backend:/app
-      - /app/node_modules
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
-      JWT_SECRET: hlaskdhaio1237891aa
     ports:
       - "3000:3000"
-    depends_on:
-      - supabase-db
-
-  # Supabase Core Services
-  supabase-db:
-    image: supabase/postgres:15.8.1.060
-    restart: always
-    volumes:
-      - supabase-db-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - "5432:5432"
-
-  supabase-rest:
-    image: postgrest/postgrest:v12.2.8
-    restart: always
-    depends_on:
-      - supabase-db
-    environment:
-      PGRST_DB_URI: postgres://postgres:postgres@supabase-db:5432/postgres
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_DB_SCHEMA: public
-      PGRST_JWT_SECRET: super-secret-jwt
-    ports:
-      - "3001:3000"
-
-  supabase-auth:
-    image: supabase/gotrue:v2.170.0
-    restart: always
-    depends_on:
-      - supabase-db
-    environment:
-      API_EXTERNAL_URL: http://localhost:9999           # ← Añadido (obligatorio)
-      GOTRUE_SITE_URL: http://localhost:4200
-      GOTRUE_JWT_SECRET: super-secret-jwt
-      GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
-      GOTRUE_DISABLE_SIGNUP: "false"
-    ports:
-      - "9999:9999"
-
-  supabase-storage:
-    image: supabase/storage-api:v1.19.3
-    restart: always
-    depends_on:
-      - supabase-db
-    environment:
-      ANON_KEY: supabase_anon_key
-      SERVICE_KEY: supabase_service_key
-      POSTGREST_URL: http://supabase-rest:3000
-      PGRST_JWT_SECRET: super-secret-jwt
-      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres  # ← Añadido (obligatorio)
-    ports:
-      - "5000:5000"
-
-  supabase-studio:
-    image: supabase/studio:20250317-6955350
-    restart: always
-    depends_on:
-      - supabase-db
-      - supabase-rest
-    environment:
-      SUPABASE_URL: http://supabase-rest:3000
-      SUPABASE_DB_HOST: supabase-db
-      SUPABASE_DB_PORT: 5432
-      SUPABASE_DB_NAME: postgres
-      SUPABASE_DB_USER: postgres
-      SUPABASE_DB_PASSWORD: postgres
-    ports:
-      - "54323:3000"
-
-volumes:
-  supabase-db-data:
