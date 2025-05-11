@@ -1,0 +1,79 @@
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* Ajustamos para centrar completamente */
+  padding: 1rem;
+  background-color: #121212; /* Fondo oscuro */
+}
+
+.auth-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-card {
+  background: #1e1e1e; /* Fondo de tarjeta oscuro */
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.full-width {
+  width: 100%;
+}
+
+mat-card-header {
+  margin-bottom: 16px;
+  color: #fff;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+mat-form-field {
+  margin-bottom: 16px;
+  display: block;
+  width: 100%;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-bottom: 24px;
+}
+
+.forgot-password a {
+  color: #3498db;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.forgot-password a:hover {
+  text-decoration: underline;
+}
+
+.form-actions {
+  margin-top: 24px;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.card-actions a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.card-actions a:hover {
+  text-decoration: underline;
+}
+
+.spinner {
+  margin: 0 auto;
+}
