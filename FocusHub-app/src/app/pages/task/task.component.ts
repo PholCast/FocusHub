@@ -3,11 +3,12 @@ import { Task } from '../../shared/interfaces/task.interface';
 import { TaskService } from '../../services/task.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NavComponent } from '../../shared/components/nav/nav.component';
 
 @Component({
   selector: 'app-task',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [NavComponent,CommonModule, FormsModule],
   templateUrl: './task.component.html',
   styleUrls: ['./task.component.css']
 })

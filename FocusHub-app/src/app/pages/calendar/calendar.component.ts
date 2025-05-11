@@ -6,11 +6,13 @@ import { CalendarEvent } from '../../shared/interfaces/calendar-event.interface'
 import { CommonModule, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs'; // Import Subscription
+import { NavComponent } from '../../shared/components/nav/nav.component';
+
 
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [NavComponent,CommonModule, FormsModule],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.css']
 })

@@ -1,0 +1,79 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--primary-bg); /* Using primary background */
+  color: var(--text-color); /* Using primary text color */
+}
+
+.login-container,
+.signin-container {
+  background-color: var(--secondary-bg); /* Using secondary background */
+  border: 2px solid var(--accent-color); /* Using accent color for border */
+  box-shadow: 0 0 20px var(--shadow-color); /* Using shadow color */
+  padding: 40px;
+  border-radius: 8px;
+  width: 350px;
+  text-align: center;
+}
+
+.login-container h1,
+.signin-container h1 {
+  color: var(--accent-color); /* Using accent color for heading */
+  margin-bottom: 30px;
+}
+
+.login-form,
+.signin-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form input,
+.signin-form input {
+  padding: 12px;
+  margin-bottom: 20px;
+  background-color: var(--primary-bg); /* Using primary background for input */
+  border: 1px solid var(--text-secondary); /* Using secondary text color for border */
+  color: var(--text-color); /* Using primary text color */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 4px;
+}
+
+.login-form input:focus,
+.signin-form input:focus {
+  border-color: var(--accent-color); /* Using accent color for focus border */
+  box-shadow: 0 0 10px rgba(70, 130, 180, 0.5); /* Using accent color for focus shadow */
+}
+
+.login-form button,
+.signin-form button {
+  padding: 12px 20px;
+  color: var(--primary-bg); /* Using primary background for button text */
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  background-color: var(--accent-color); /* Using accent color for button background */
+  border: none; /* Removed the border that used an undefined variable */
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.login-form button:hover,
+.signin-form button:hover {
+  background-color: #5e94c7; /* Slightly darker shade for hover */
+  transform: translateY(-2px);
+}
+
+.login-container a,
+.signin-container a {
+  text-decoration: none;
+  color: var(--accent-color); /* Using accent color for links */
+}
+
+.login-container a:hover,
+.signin-container a:hover {
+  color: #5e94c7; /* Slightly darker shade for link hover */
+}

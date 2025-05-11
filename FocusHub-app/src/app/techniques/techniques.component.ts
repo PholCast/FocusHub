@@ -1,8 +1,7 @@
-// 
-
 import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Renderer2, inject,signal, WritableSignal } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms'; // Importa ReactiveFormsModule y FormBuilder, FormGroup, Validators
+import { NavComponent } from '../shared/components/nav/nav.component';
 
 interface Technique {
   name: string;
@@ -14,7 +13,7 @@ interface Technique {
 @Component({
   selector: 'app-techniques',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule], // Importa ReactiveFormsModule aquí
+  imports: [NavComponent,FormsModule, ReactiveFormsModule], // Importa ReactiveFormsModule aquí
   templateUrl: './techniques.component.html',
   styleUrls: ['./techniques.component.css']
 })

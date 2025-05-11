@@ -1,132 +1,135 @@
-<div class="container">
-    <header>
-        <h1>⏰ Técnicas de Concentración</h1>
-        <div class="technique-selector">
-            <select #techniqueSelect (change)="changeTechnique($event)">
-                <option value="pomodoro">Pomodoro (25/5/15)</option>
-                <option value="5217">Técnica 52/17</option>
-                <option value="9020">Técnica 90/20</option>
-                </select>
-            <button (click)="showNewTechniqueModal()" class="btn-add">+ Nueva Técnica</button>
-        </div>
-    </header>
+<app-nav></app-nav>
+<main>
+    <div class="container">
+        <header>
+            <h1>⏰ Técnicas de Concentración</h1>
+            <div class="technique-selector">
+                <select #techniqueSelect (change)="changeTechnique($event)">
+                    <option value="pomodoro">Pomodoro (25/5/15)</option>
+                    <option value="5217">Técnica 52/17</option>
+                    <option value="9020">Técnica 90/20</option>
+                    </select>
+                <button (click)="showNewTechniqueModal()" class="btn-add">+ Nueva Técnica</button>
+            </div>
+        </header>
 
-    <main>
-        <div class="timer-tabs" #tabButtons>
-            <button (click)="setActiveTab(0)" class="tab-btn" [class.active]="activeTabIndex() === 0">Sesión de concentración</button>
-            <button (click)="setActiveTab(1)" class="tab-btn" [class.active]="activeTabIndex() === 1">Descanso Corto</button>
-            @if(this.currentTechnique.longBreak != 0){
-            <button (click)="setActiveTab(2)" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
-            }@else{
-                <button disabled style="opacity: 0.5;" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button> 
-            }
-        </div>
+        <main>
+            <div class="timer-tabs" #tabButtons>
+                <button (click)="setActiveTab(0)" class="tab-btn" [class.active]="activeTabIndex() === 0">Sesión de concentración</button>
+                <button (click)="setActiveTab(1)" class="tab-btn" [class.active]="activeTabIndex() === 1">Descanso Corto</button>
+                @if(this.currentTechnique.longBreak != 0){
+                <button (click)="setActiveTab(2)" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
+                }@else{
+                    <button disabled style="opacity: 0.5;" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button> 
+                }
+            </div>
 
-        <div class="timer-container">
-            <div #timerCircle class="timer-circle">
-                <div #timerDisplay class="timer-display">{{ timeLeft() }}</div>
+            <div class="timer-container">
+                <div #timerCircle class="timer-circle">
+                    <div #timerDisplay class="timer-display">{{ timeLeft() }}</div>
+                </div>
+            </div>
+
+            <div class="timer-controls">
+                <button (click)="startTimer()" [disabled]="isRunning" class="control-btn start">INICIAR</button>
+                <button (click)="stopTimer()" [disabled]="!isRunning" class="control-btn stop">DETENER</button>
+                <button (click)="resetTimer()" class="control-btn reset">REINICIAR</button>
+            </div>
+
+            <div class="associated-tasks">
+                <h3>Tareas Asociadas</h3>
+                <div class="tasks-list">
+                    <div class="task-item">
+                        <input type="checkbox" id="task1">
+                        <label for="task1">Completar informe de proyecto</label>
+                    </div>
+                    <div class="task-item">
+                        <input type="checkbox" id="task2">
+                        <label for="task2">Revisar documentación</label>
+                    </div>
+                    <div class="task-item">
+                        <input type="checkbox" id="task3">
+                        <label for="task3">Preparar presentación</label>
+                    </div>
+                </div>
+                <button class="btn-add-task">+ Añadir Tarea</button>
+            </div>
+        </main>
+
+        <div class="modal" #newTechniqueModal [style.display]="isNewTechniqueModalVisible() ? 'flex' : 'none'">
+            <div class="modal-content">
+                <span class="close-modal" (click)="hideNewTechniqueModal()">&times;</span>
+                <h2>Crear Nueva Técnica</h2>
+                <!-- <form #newTechniqueForm="ngForm" (ngSubmit)="saveNewTechnique()">
+                    <div class="form-group">
+                        <label for="technique-name">Nombre de la técnica</label>
+                        <input type="text" id="technique-name" name="techniqueName" [(ngModel)]="newTechniqueName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="work-duration">Duración del tiempo de trabajo (minutos)</label>
+                        <input type="number" id="work-duration" name="workDuration" [(ngModel)]="newTechniqueWorkDuration" min="1" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="short-break">Duración del descanso corto (minutos)</label>
+                        <input type="number" id="short-break" name="shortBreak" [(ngModel)]="newTechniqueShortBreak" min="1" max="30" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="long-break">Duración del descanso largo (minutos, opcional)</label>
+                        <input type="number" id="long-break" name="longBreak" [(ngModel)]="newTechniqueLongBreak" min="5" max="60">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" (click)="hideNewTechniqueModal()">Cancelar</button>
+                        <button type="submit" class="btn-save" [disabled]="newTechniqueForm.invalid">Guardar</button>
+                    </div>
+                </form> -->
+                <form [formGroup]="newTechniqueForm" (ngSubmit)="saveNewTechnique()" #newTechniqueFormElement>
+                    <div class="form-group">
+                        <label for="technique-name">Nombre de la técnica</label>
+                        <input type="text" id="technique-name" formControlName="name" required>
+                        @if(newTechniqueForm.get('name')?.invalid && (newTechniqueForm.get('name')?.dirty || newTechniqueForm.get('name')?.touched)){
+                        <div class="error-message">El nombre es requerido.</div>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label for="work-duration">Duración del tiempo de trabajo (minutos)</label>
+                        <input type="number" id="work-duration" formControlName="workDuration" min="1" max="120" required>
+                        @if(newTechniqueForm.get('workDuration')?.invalid && (newTechniqueForm.get('workDuration')?.dirty || newTechniqueForm.get('workDuration')?.touched)){
+                        <div class="error-message">La duración debe ser entre 1 y 120 minutos.</div>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label for="short-break">Duración del descanso corto (minutos)</label>
+                        <input type="number" id="short-break" formControlName="shortBreak" min="1" max="30" required>
+                        @if(newTechniqueForm.get('shortBreak')?.invalid && (newTechniqueForm.get('shortBreak')?.dirty || newTechniqueForm.get('shortBreak')?.touched)){
+                        <div class="error-message">El descanso debe ser entre 1 y 30 minutos.</div>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label for="long-break">Duración del descanso largo (minutos, opcional)</label>
+                        <input type="number" id="long-break" formControlName="longBreak" min="0" max="60">
+                        @if(newTechniqueForm.get('longBreak')?.invalid && (newTechniqueForm.get('longBreak')?.dirty || newTechniqueForm.get('longBreak')?.touched)){
+                        <div class="error-message">El descanso largo debe ser entre 0 y 60 minutos.</div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" (click)="hideNewTechniqueModal()">Cancelar</button>
+                        <button type="submit" class="btn-save" [disabled]="newTechniqueForm.invalid">Guardar</button>
+                    </div>
+                </form>
             </div>
         </div>
 
-        <div class="timer-controls">
-            <button (click)="startTimer()" [disabled]="isRunning" class="control-btn start">INICIAR</button>
-            <button (click)="stopTimer()" [disabled]="!isRunning" class="control-btn stop">DETENER</button>
-            <button (click)="resetTimer()" class="control-btn reset">REINICIAR</button>
-        </div>
-
-        <div class="associated-tasks">
-            <h3>Tareas Asociadas</h3>
-            <div class="tasks-list">
-                <div class="task-item">
-                    <input type="checkbox" id="task1">
-                    <label for="task1">Completar informe de proyecto</label>
-                </div>
-                <div class="task-item">
-                    <input type="checkbox" id="task2">
-                    <label for="task2">Revisar documentación</label>
-                </div>
-                <div class="task-item">
-                    <input type="checkbox" id="task3">
-                    <label for="task3">Preparar presentación</label>
-                </div>
+        <div class="floating-timer" #floatingTimer [style.display]="isFloatingTimerVisible ? 'block' : 'none'">
+            <div class="floating-timer-header">
+                <span class="technique-name">{{ currentTechnique.name }}</span>
+                <span class="close-floating" (click)="hideFloatingTimer()">&times;</span>
             </div>
-            <button class="btn-add-task">+ Añadir Tarea</button>
-        </div>
-    </main>
-
-    <div class="modal" #newTechniqueModal [style.display]="isNewTechniqueModalVisible() ? 'flex' : 'none'">
-        <div class="modal-content">
-            <span class="close-modal" (click)="hideNewTechniqueModal()">&times;</span>
-            <h2>Crear Nueva Técnica</h2>
-            <!-- <form #newTechniqueForm="ngForm" (ngSubmit)="saveNewTechnique()">
-                <div class="form-group">
-                    <label for="technique-name">Nombre de la técnica</label>
-                    <input type="text" id="technique-name" name="techniqueName" [(ngModel)]="newTechniqueName" required>
-                </div>
-                <div class="form-group">
-                    <label for="work-duration">Duración del tiempo de trabajo (minutos)</label>
-                    <input type="number" id="work-duration" name="workDuration" [(ngModel)]="newTechniqueWorkDuration" min="1" max="120" required>
-                </div>
-                <div class="form-group">
-                    <label for="short-break">Duración del descanso corto (minutos)</label>
-                    <input type="number" id="short-break" name="shortBreak" [(ngModel)]="newTechniqueShortBreak" min="1" max="30" required>
-                </div>
-                <div class="form-group">
-                    <label for="long-break">Duración del descanso largo (minutos, opcional)</label>
-                    <input type="number" id="long-break" name="longBreak" [(ngModel)]="newTechniqueLongBreak" min="5" max="60">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-cancel" (click)="hideNewTechniqueModal()">Cancelar</button>
-                    <button type="submit" class="btn-save" [disabled]="newTechniqueForm.invalid">Guardar</button>
-                </div>
-            </form> -->
-            <form [formGroup]="newTechniqueForm" (ngSubmit)="saveNewTechnique()" #newTechniqueFormElement>
-                <div class="form-group">
-                    <label for="technique-name">Nombre de la técnica</label>
-                    <input type="text" id="technique-name" formControlName="name" required>
-                    @if(newTechniqueForm.get('name')?.invalid && (newTechniqueForm.get('name')?.dirty || newTechniqueForm.get('name')?.touched)){
-                    <div class="error-message">El nombre es requerido.</div>
-                    }
-                </div>
-                <div class="form-group">
-                    <label for="work-duration">Duración del tiempo de trabajo (minutos)</label>
-                    <input type="number" id="work-duration" formControlName="workDuration" min="1" max="120" required>
-                    @if(newTechniqueForm.get('workDuration')?.invalid && (newTechniqueForm.get('workDuration')?.dirty || newTechniqueForm.get('workDuration')?.touched)){
-                    <div class="error-message">La duración debe ser entre 1 y 120 minutos.</div>
-                    }
-                </div>
-                <div class="form-group">
-                    <label for="short-break">Duración del descanso corto (minutos)</label>
-                    <input type="number" id="short-break" formControlName="shortBreak" min="1" max="30" required>
-                    @if(newTechniqueForm.get('shortBreak')?.invalid && (newTechniqueForm.get('shortBreak')?.dirty || newTechniqueForm.get('shortBreak')?.touched)){
-                    <div class="error-message">El descanso debe ser entre 1 y 30 minutos.</div>
-                    }
-                </div>
-                <div class="form-group">
-                    <label for="long-break">Duración del descanso largo (minutos, opcional)</label>
-                    <input type="number" id="long-break" formControlName="longBreak" min="0" max="60">
-                    @if(newTechniqueForm.get('longBreak')?.invalid && (newTechniqueForm.get('longBreak')?.dirty || newTechniqueForm.get('longBreak')?.touched)){
-                    <div class="error-message">El descanso largo debe ser entre 0 y 60 minutos.</div>
-                    }
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-cancel" (click)="hideNewTechniqueModal()">Cancelar</button>
-                    <button type="submit" class="btn-save" [disabled]="newTechniqueForm.invalid">Guardar</button>
-                </div>
-            </form>
+            <div #floatingTimerDisplay class="floating-timer-display">{{ timeLeft() }}</div>
+            <div class="floating-timer-controls">
+                <button (click)="startFloatingTimer()" [disabled]="isRunning" class="floating-btn start">▶</button>
+                <button (click)="stopFloatingTimer()" [disabled]="!isRunning" class="floating-btn pause">⏸</button>
+                <button (click)="resetFloatingTimer()" class="floating-btn reset">⟳</button>
+            </div>
         </div>
     </div>
-
-    <div class="floating-timer" #floatingTimer [style.display]="isFloatingTimerVisible ? 'block' : 'none'">
-        <div class="floating-timer-header">
-            <span class="technique-name">{{ currentTechnique.name }}</span>
-            <span class="close-floating" (click)="hideFloatingTimer()">&times;</span>
-        </div>
-        <div #floatingTimerDisplay class="floating-timer-display">{{ timeLeft() }}</div>
-        <div class="floating-timer-controls">
-            <button (click)="startFloatingTimer()" [disabled]="isRunning" class="floating-btn start">▶</button>
-            <button (click)="stopFloatingTimer()" [disabled]="!isRunning" class="floating-btn pause">⏸</button>
-            <button (click)="resetFloatingTimer()" class="floating-btn reset">⟳</button>
-        </div>
-    </div>
-</div>
+</main>
