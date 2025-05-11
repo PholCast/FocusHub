@@ -1,11 +1,18 @@
 // src/users/users.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete,UseGuards, Request  } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('users')  // Ruta base para este controlador
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  getProfile(@Request() req) {
+    return req.user;
+  }
   // Ruta para crear un nuevo usuario
   @Post()
   createUser(
