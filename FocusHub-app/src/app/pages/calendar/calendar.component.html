@@ -1,0 +1,217 @@
+<div class="calendar-container">
+    <div class="calendar-header">
+        <div *ngIf="viewMode === 'month'">
+            <button (click)="prevMonth()">‹</button>
+            <h2>{{ currentDate | date:'MMMM y' }}</h2>
+            <button (click)="nextMonth()">›</button>
+        </div>
+
+        <div *ngIf="viewMode === 'week'">
+            <button (click)="prevWeek()">‹</button>
+            <h2>{{ getWeekRange() }}</h2>
+            <button (click)="nextWeek()">›</button>
+        </div>
+
+        <div *ngIf="viewMode === 'day'" class="day-header">
+            <button class="close-day-view" (click)="closeDayView()">×</button>
+            <h2>{{ selectedDate | date:'fullDate' }}</h2>
+        </div>
+
+        <button class="view-toggle" (click)="toggleViewMode()">
+            {{ viewMode === 'month' ? 'Vista semanal' : 'Vista mensual' }}
+        </button>
+    </div>
+
+    <div *ngIf="viewMode === 'month'" class="calendar-month-view">
+        <div class="calendar-grid">
+            <div class="calendar-weekday" *ngFor="let day of ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']">
+                {{ day }}
+            </div>
+
+            <div class="calendar-day" *ngFor="let day of getDaysInMonth()" [class.current-month]="true"
+                [class.selected]="selectedDate?.toDateString() === day.toDateString()" (click)="selectDate(day)">
+
+                <div class="day-number">{{ day.getDate() }}</div>
+
+                <div class="day-events">
+                    <div *ngFor="let item of getEventsForDate(day)" class="event-item" [class.task]="isTask(item)"
+                        [class.event]="!isTask(item)" (click)="$event.stopPropagation(); editItem(item)">
+                        {{ item.title }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div *ngIf="viewMode === 'week'" class="calendar-week-view">
+        <div class="week-header">
+            <div class="hour-header-placeholder"></div>
+            <div class="week-day" *ngFor="let day of weekDays; let i = index">
+                <div class="day-name">{{ day.name }}</div>
+                <div class="day-date">{{ day.date.getDate() }}</div>
+            </div>
+        </div>
+
+        <div class="week-tasks-container">
+            <div style="visibility: hidden;"></div>
+            <div class="day-tasks" *ngFor="let day of weekDays; let i = index" [style.gridColumn]="i + 2">
+                <div *ngFor="let task of getTasksWithDueDateForDate(day.date)" class="event-item task"
+                    (click)="editItem(task)">
+                    {{ task.title }}
+                </div>
+                <div class="add-task-trigger" (click)="openTaskForm(day.date)">
+                    + Añadir Tarea
+                </div>
+            </div>
+        </div>
+
+        <div class="week-grid">
+            <div class="hour-column">
+                <div class="hour-label" *ngFor="let hour of hours">{{ hour }}:00</div>
+            </div>
+
+            <div class="day-column" *ngFor="let day of weekDays">
+                <div class="hour-slot" *ngFor="let hour of hours">
+                    <div class="half-hour-slot top" (click)="openEventForm(day.date, hour)"></div>
+                    <div class="half-hour-slot bottom" (click)="openEventForm(day.date, hour + 0.5)"></div>
+
+                    <div class="event-slot-container">
+                        <div class="event-in-slot" *ngFor="let event of getEventsForHour(day.date, hour)"
+                            [style.top]="getEventTopPosition(event)" [style.height]="getEventHeight(event)"
+                            [class.event]="true" (click)="editItem(event)">
+                            <div class="event-title" *ngIf="isFirstHourOfEvent(event, day.date, hour)">
+                                {{ event.title }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div *ngIf="viewMode === 'day' && selectedDate" class="calendar-day-view">
+        <div class="daily-view-container">
+            <div class="hour-slots-container">
+                <div class="hour-slot" *ngFor="let hour of hours">
+                    <div class="hour-label">{{ hour }}:00</div>
+                    <div class="half-hour-slot top" (click)="openEventForm(selectedDate, hour)"></div>
+                    <div class="half-hour-slot bottom" (click)="openEventForm(selectedDate, hour + 0.5)"></div>
+
+                    <div class="event-slot-container">
+                        <div class="event-in-slot" *ngFor="let event of getEventsForHour(selectedDate, hour)"
+                            [style.top]="getEventTopPosition(event)" [style.height]="getEventHeight(event)"
+                            [class.event]="true" (click)="editItem(event)">
+                            <div class="event-title" *ngIf="isFirstHourOfEvent(event, selectedDate, hour)">
+                                {{ event.title }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tasks-container">
+                <h4>Tareas</h4>
+                <div *ngFor="let task of getTasksWithDueDateForDate(selectedDate)" class="event-item task"
+                    (click)="editItem(task)">
+                    {{ task.title }}
+                </div>
+                <div class="add-task-trigger" (click)="openTaskForm(selectedDate)">
+                    +
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="event-form-overlay" *ngIf="showEventForm">
+    <div class="event-form">
+        <h3>{{ newEvent.id === 0 ? 'Nuevo Evento' : 'Editar Evento' }}</h3>
+
+        <div class="form-group">
+            <label>Título *</label>
+            <input type="text" [(ngModel)]="newEvent.title" placeholder="Título del evento" required>
+        </div>
+
+        <div class="form-group">
+            <label>Fecha *</label>
+            <input type="date" [(ngModel)]="eventDate" (change)="updateEventTimes()" required>
+        </div>
+
+        <div class="time-selection">
+            <div class="time-group">
+                <label>Hora de inicio *</label>
+                <select [(ngModel)]="startHour" (change)="updateEventTimes()">
+                    <option *ngFor="let hour of hours" [value]="hour">
+                        {{ hour.toString().padStart(2, '0') }}
+                    </option>
+                </select>
+                <select [(ngModel)]="startMinute" (change)="updateEventTimes()">
+                    <option *ngFor="let minute of availableMinutes" [value]="minute">
+                        :{{ minute.toString().padStart(2, '0') }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="time-group">
+                <label>Hora de fin *</label>
+                <select [(ngModel)]="endHour" (change)="updateEventTimes()">
+                    <option *ngFor="let hour of hours" [value]="hour">
+                        {{ hour.toString().padStart(2, '0') }}
+                    </option>
+                </select>
+                <select [(ngModel)]="endMinute" (change)="updateEventTimes()">
+                    <option *ngFor="let minute of availableMinutes" [value]="minute">
+                        :{{ minute.toString().padStart(2, '0') }}
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Descripción</label>
+            <textarea [(ngModel)]="newEvent.description" rows="3"></textarea>
+        </div>
+
+        <div class="error-message" *ngIf="timeError">
+            La hora de fin debe ser posterior a la hora de inicio
+        </div>
+
+        <div class="form-actions">
+            <button class="cancel-btn" (click)="showEventForm = false">Cancelar</button>
+            <button class="save-btn" (click)="saveEvent()"
+                [disabled]="timeError || !newEvent.title || !newEvent.title.trim()">
+                Guardar
+            </button>
+            <button class="delete-btn" *ngIf="newEvent.id !== 0" (click)="deleteEvent(newEvent.id)">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div class="event-form-overlay" *ngIf="showTaskForm">
+    <div class="event-form">
+        <h3>Nueva Tarea</h3>
+
+        <div class="form-group">
+            <label>Título *</label>
+            <input type="text" [(ngModel)]="newTask.title" placeholder="Título de la tarea" required>
+        </div>
+
+        <div class="form-group">
+            <label>Fecha de vencimiento</label>
+            <p>{{ newTask.dueDate | date:'fullDate' }}</p>
+            <small>Para modificar la fecha o añadir hora, ve a la página de "Mis Tareas".</small>
+        </div>
+
+
+        <div class="form-actions">
+            <button class="cancel-btn" (click)="cancelTaskForm()">Cancelar</button>
+            <button class="save-btn" (click)="saveTaskFromCalendar()"
+                [disabled]="!newTask.title || !newTask.title.trim()">
+                Guardar Tarea
+            </button>
+        </div>
+    </div>
+</div>

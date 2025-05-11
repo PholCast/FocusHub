@@ -1,0 +1,133 @@
+<div class="header">
+    <div class="logo">🏠</div>
+    <h1>Mis tareas</h1>
+</div>
+
+<div class="task-container">
+    <div class="task-list-container">
+        <div class="add-task">
+            <input type="text" placeholder="Añadir una tarea" #newTaskTitle
+                (keyup.enter)="addTask(newTaskTitle.value); newTaskTitle.value = ''">
+        </div>
+
+        <h2>Tareas pendientes</h2>
+        <ul class="task-list">
+            <li *ngFor="let task of pendingTasks" [class.completed]="task.completed">
+                <div class="task-item">
+                    <input type="checkbox" [checked]="task.completed" (change)="toggleComplete(task.id)">
+                    <span (click)="openTaskDetails(task)">{{ task.title }}</span>
+                    <span class="task-date" *ngIf="task.dueDate">
+                        📅 {{ task.dueDate | date:'shortDate' }}
+                    </span>
+                </div>
+            </li>
+        </ul>
+
+        <div class="expandable-section">
+            <button class="expand-btn" (click)="showCompleted = !showCompleted">
+                {{ showCompleted ? '▼' : '▶' }} Tareas completadas ({{ completedTasks.length }})
+            </button>
+            <ul class="task-list" *ngIf="showCompleted">
+                <li *ngFor="let task of completedTasks" class="completed">
+                    <div class="task-item">
+                        <input type="checkbox" [checked]="true" (change)="toggleComplete(task.id)">
+                        <span (click)="openTaskDetails(task)">{{ task.title }}</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="expandable-section">
+            <button class="expand-btn" (click)="showExpired = !showExpired">
+                {{ showExpired ? '▼' : '▶' }} Tareas vencidas ({{ expiredTasks.length }})
+            </button>
+            <ul class="task-list" *ngIf="showExpired">
+                <li *ngFor="let task of expiredTasks" class="expired">
+                    <div class="task-item">
+                        <input type="checkbox" [checked]="task.completed" (change)="toggleComplete(task.id)">
+                        <span (click)="openTaskDetails(task)">{{ task.title }}</span>
+                        <span class="task-date">
+                            ⚠️ {{ task.dueDate | date:'shortDate' }}
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <aside class="task-details-panel" *ngIf="selectedTask">
+        <div class="task-details-header">
+            <h3>Detalles de la tarea</h3>
+            <button class="close-btn" (click)="closeDetails()">×</button>
+        </div>
+
+        <div class="task-details-content" [class.completed]="selectedTask.completed">
+            <div class="task-item-panel">
+                <input type="checkbox" 
+                       [checked]="selectedTask.completed" 
+                       (change)="toggleComplete(selectedTask.id)">
+                <input type="text" 
+                       class="task-title-input" 
+                       [(ngModel)]="selectedTask.title"
+                       [disabled]="selectedTask.completed"
+                       placeholder="Título de la tarea">
+            </div>
+            <div class="detail-item">
+                <label>Descripción</label>
+                <textarea [(ngModel)]="selectedTask.description" [disabled]="selectedTask.completed"
+                    rows="4"></textarea>
+            </div>
+
+            <div class="detail-item">
+                <label>Fecha de creación</label>
+                <p>{{ selectedTask.createdDate | date:'medium' }}</p>
+            </div>
+
+            <div class="detail-item">
+                <label>Fecha límite</label>
+                <input type="date" [(ngModel)]="selectedTask.dueDate" [disabled]="selectedTask.completed">
+            </div>
+
+            <div class="detail-item">
+                <label>Prioridad</label>
+                <select [(ngModel)]="selectedTask.priority" [disabled]="selectedTask.completed">
+                    <option [value]="undefined">Sin prioridad</option>
+                    <option value="Baja">Baja</option>
+                    <option value="Media">Media</option>
+                    <option value="Alta">Alta</option>
+                </select>
+            </div>
+
+            <div class="detail-item">
+                <label>Categoría</label>
+                <select [(ngModel)]="selectedTask.category" [disabled]="selectedTask.completed">
+                    <option [value]="undefined">Sin categoría</option>
+                    <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+                </select>
+                <div class="add-category">
+                    <input type="text" placeholder="Nueva categoría" [(ngModel)]="newCategory"
+                        [disabled]="selectedTask.completed">
+                    <button (click)="addCategory()" [disabled]="selectedTask.completed">+</button>
+                </div>
+            </div>
+
+            <div class="detail-item">
+                <label>Proyecto</label>
+                <select [(ngModel)]="selectedTask.project" [disabled]="selectedTask.completed">
+                  <option [value]="undefined">Sin proyecto</option>
+                  <option *ngFor="let proj of projects" [value]="proj">{{ proj }}</option>
+                </select>
+                <div class="add-category">
+                  <input type="text" placeholder="Nuevo proyecto" [(ngModel)]="newProject">
+                  <button (click)="addProject()" [disabled]="selectedTask.completed">+</button>
+                </div>
+              </div>
+
+            <div class="actions">
+                <button class="duplicate-btn" (click)="duplicateTask(selectedTask.id)">Duplicar</button>
+                <button class="delete-btn" (click)="confirmDelete(selectedTask.id)">Eliminar</button>
+                <button class="save-btn" (click)="saveTaskDetails()" *ngIf="!selectedTask.completed">Guardar</button>
+            </div>
+        </div>
+    </aside>
+</div>
