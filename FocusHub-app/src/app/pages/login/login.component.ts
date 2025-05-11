@@ -1,73 +1,54 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Component, inject } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import Swal from 'sweetalert2';
 import { AuthService } from '../../shared/services/auth.service';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { RouterModule } from '@angular/router';
-
 
 @Component({
-  standalone: true,
   selector: 'app-login',
+  imports: [RouterLink, ReactiveFormsModule],
   templateUrl: './login.component.html',
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    RouterModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatSnackBarModule,
-    MatProgressSpinnerModule
-  ],
-  styleUrls: ['./login.component.css']
+  styleUrl: './login.component.css'
 })
-export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
-  isLoading = false;
+export class LoginComponent {
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {}
+  router = inject(Router);
 
-  ngOnInit(): void {
-    this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]]
-    });
-  }
+  authService = inject(AuthService);
 
-  onSubmit(): void {
-    if (this.loginForm.invalid) {
+  fb = inject(FormBuilder);
+
+  loginForm = this.fb.group({
+    role:['',Validators.required],
+    usernameOrEmail:['', [Validators.required]],
+    password:['', [Validators.required]]
+  })
+
+
+
+  onLogin(){
+    if(this.loginForm.invalid){
+      Swal.fire({
+        text:'Diligencie todos los campos',
+        icon:'error'
+      })
       return;
     }
+    
+    const {usernameOrEmail, password, role} = this.loginForm.value;
 
-    this.isLoading = true;
-    const { email, password } = this.loginForm.value;
+    const success = this.authService.login(usernameOrEmail!, password!,role!);
 
-    this.authService.login(email, password).subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.router.navigate(['/dashboard']);
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.snackBar.open(error.message || 'Invalid email or password', 'Close', {
-          duration: 5000
-        });
-      }
-    });
+    if (!success){
+      Swal.fire({
+        text: 'Credenciales incorrectas',
+        icon: 'error'
+      });
+      return
+      
+    }
+    this.router.navigateByUrl('');
+
   }
+
 }

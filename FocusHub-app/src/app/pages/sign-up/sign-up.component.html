@@ -1,0 +1,47 @@
+<section class="sign-container">
+    <!-- Logo -->
+    <div class="logo">
+        <span class="logo-text">IronFix</span>
+    </div>
+    
+    <!-- Signup Form -->
+    <form [formGroup]="signUpForm">
+        <!-- <h2 class="form-title">Regístrate</h2> -->
+        
+
+
+        <!-- Fullname field -->
+        <div class="form-group">
+            <label class="form-label">Nombre completo</label>
+            <input type="text" id ="fullname"  class="form-input" placeholder="Nombre completo" formControlName="fullname">
+        </div>
+
+        <!-- Username field -->
+        <div class="form-group">
+            <label class="form-label">Nombre de usuario</label>
+            <input type="text" id ="username"  class="form-input" placeholder="Nombre de usuario" formControlName="username">
+        </div>
+        
+        <!-- Email field -->
+        <div class="form-group">
+            <label class="form-label">Correo electrónico</label>
+            <input type="email" id ="email"  class="form-input" placeholder="Correo electrónico" formControlName="email">
+        </div>
+        
+        <!-- Password field -->
+        <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <input type="password" id ="password"  class="form-input" placeholder="Contraseña" formControlName="password">
+        </div>
+
+        <!-- Password field -->
+        <div class="form-group">
+            <label class="form-label">Confirmar Contraseña</label>
+            <input type="password" id="password2"  class="form-input" placeholder="Confirma tu Contraseña" formControlName="rePassword">
+        </div>
+        
+        <!-- Signup button -->
+        <button (click)="onRegistry()" class="signup-button">Registrarse</button>
+        <a [routerLink]="['/login']" class="login-link other-option-link">¿Ya tienes una cuenta?</a>
+    </form>
+</section>

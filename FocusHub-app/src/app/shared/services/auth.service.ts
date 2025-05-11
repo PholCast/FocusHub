@@ -1,87 +1,121 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
-import { environment } from '../../../environment';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-}
+import { Injectable, signal } from '@angular/core';
+import { User } from '../interfaces/user.interface';
+import Swal from 'sweetalert2';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
-  private readonly TOKEN_KEY = 'auth_token';
-  private readonly USER_KEY = 'current_user';
-  private apiUrl = `${environment.apiUrl}/auth`;
-  
-  constructor(private http: HttpClient) {
-    this.loadStoredUser();
+
+  constructor() { }
+
+  isLogged = signal(this.currentUserExists());
+
+  userTechnician = signal(this.isTechnician())
+
+  private getStoredUsers(): User[] {
+    return JSON.parse(localStorage.getItem('users') || '[]');
   }
-  
-  private loadStoredUser(): void {
-    const storedUser = localStorage.getItem(this.USER_KEY);
-    if (storedUser) {
-      this.currentUserSubject.next(JSON.parse(storedUser));
+
+  login(usernameOrEmail: string, password: string,role:string): boolean {
+
+    const users = this.getStoredUsers();
+    
+    const user = users.find((u: User) => 
+      (u.username.toLowerCase() === usernameOrEmail.toLowerCase() || 
+    u.email.toLowerCase() === usernameOrEmail.toLowerCase()) && 
+    u.role.toLowerCase() === role.toLowerCase() );
+    
+    if (user && user.password === password) {
+      this.isLogged.set(true);
+      localStorage.setItem('currentUser',JSON.stringify(user));
+      this.userTechnician.set(this.isTechnician());
+      return true;
     }
+    return false;
   }
-  
-  register(registerRequest: RegisterRequest): Observable<void> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, registerRequest).pipe(
-      map(() => void 0),
-      catchError(error => {
-        // In a real app, handle different error types
-        return throwError(() => new Error('Registration failed. Please try again.'));
-      })
-    );
-  }
-  
-  login(email: string, password: string): Observable<User> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, { email, password }).pipe(
-      tap(response => {
-        localStorage.setItem(this.TOKEN_KEY, response.token);
-        localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
-        this.currentUserSubject.next(response.user);
-      }),
-      map(response => response.user),
-      catchError(error => {
-        // In a real app, handle different error types
-        return throwError(() => new Error('Invalid email or password'));
-      })
-    );
-  }
-  
+
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    this.currentUserSubject.next(null);
+    this.isLogged.set(false);
+    localStorage.removeItem('currentUser');
+    this.userTechnician.set(false);
   }
+
+  registry(user: User): { success: boolean, message?: string } {
+
+    const users = this.getStoredUsers();
+
+    const userExists = users.some((u: User) => u.username.toLowerCase() === user.username.toLowerCase());
+    const emailExists = users.some((u: User) => u.email.toLowerCase() === user.email.toLowerCase());
   
-  isLoggedIn(): boolean {
-    return !!this.getToken();
+    if (userExists) {
+      return { success: false, message: `El nombre de usuario ${user.username} ya está en uso.` };
+    }
+  
+    if (emailExists) {
+      return { success: false, message: `El correo electrónico ${user.email} ya está en uso.` };
+    }
+    users.push(user);
+
+    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.setItem('currentUser',JSON.stringify(user))
+    
+    this.isLogged.set(true);
+    return {success:true};
   }
-  
-  getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+
+  currentUserExists():boolean{
+    return !!this.getCurrentUser();
   }
-  
+
+  isTechnician(): boolean {
+    const user = this.getCurrentUser()
+    if(user){
+      return (user.role === 'technician');
+    }
+    return false
+  }
+
   getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
+    const userJson = localStorage.getItem('currentUser');
+    if (userJson) {
+      return JSON.parse(userJson) as User;
+    }
+    return null;
   }
+
+
+  
+  updateUser(updatedUser: User, originalUsername: string, originalEmail: string): { success: boolean, message?: string } {
+    const users = this.getStoredUsers();
+  
+    
+    const isDuplicate = users.some((u: User) =>
+      (u.username.toLowerCase() === updatedUser.username.toLowerCase() || u.email.toLowerCase() === updatedUser.email.toLowerCase()) &&
+      (u.username.toLowerCase() !== originalUsername.toLowerCase() || u.email.toLowerCase() !== originalEmail.toLowerCase())
+    );
+  
+    if (isDuplicate) {
+      return { success: false, message: 'Ya existe un usuario con ese nombre de usuario o correo electrónico.' };
+    }
+  
+    // Buscar al usuario original
+    const userIndex = users.findIndex(
+      (u: User) => u.username === originalUsername && u.email.toLowerCase() === originalEmail.toLowerCase()
+    );
+  
+    if (userIndex === -1) {
+      return { success: false, message: 'Usuario original no encontrado.' };
+    }
+  
+    // Actualizar los datos
+    users[userIndex] = updatedUser;
+    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+  
+    return {success: true};
+  }
+  
+  
+  
 }
