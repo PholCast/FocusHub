@@ -11,6 +11,13 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  async findById(id: number): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
   // Crear un nuevo usuario
   async createUser(createUserDto: { email: string; password: string; name: string; lastname?: string }) {
     const user = this.userRepository.create(createUserDto); // Crear un nuevo objeto de usuario

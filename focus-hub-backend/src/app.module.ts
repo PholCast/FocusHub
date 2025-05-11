@@ -9,6 +9,7 @@ import { EventsModule } from './events/events.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { ProductivityModule } from './productivity/productivity.module';
 import { TasksModule } from './tasks/tasks.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { TasksModule } from './tasks/tasks.module';
     EventsModule,
     RemindersModule,
     ProductivityModule,
-    TasksModule
+    TasksModule,
+    AuthModule
     ],
   controllers: [AppController],
   providers: [AppService],
