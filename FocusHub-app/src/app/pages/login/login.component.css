@@ -2,76 +2,75 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh; /* Ajustamos para centrar completamente */
+  min-height: 100vh;
+  background-color: #0f0f0f;
   padding: 1rem;
-  background-color: #121212; /* Fondo oscuro */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .auth-wrapper {
+  width: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;
-  width: 100%;
 }
 
 .auth-card {
-  background: #1e1e1e; /* Fondo de tarjeta oscuro */
-  width: 100%;
+  background: #1c1c1c;
   max-width: 400px;
+  width: 100%;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease;
+}
+
+.auth-card:hover {
+  transform: translateY(-4px);
+}
+
+mat-card-header {
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+  font-size: 1.75rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+mat-form-field {
+  width: 100%;
+  margin-bottom: 1rem;
 }
 
 .full-width {
   width: 100%;
 }
 
-mat-card-header {
-  margin-bottom: 16px;
-  color: #fff;
-  text-align: center;
-  font-size: 1.5rem;
-}
-
-mat-form-field {
-  margin-bottom: 16px;
-  display: block;
-  width: 100%;
-}
-
 .forgot-password {
   text-align: right;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
-.forgot-password a {
-  color: #3498db;
+.forgot-password a,
+.card-actions a {
+  color: #4ea8de;
   text-decoration: none;
   font-size: 0.9rem;
+  transition: color 0.2s ease;
 }
 
-.forgot-password a:hover {
-  text-decoration: underline;
+.forgot-password a:hover,
+.card-actions a:hover {
+  color: #74c0fc;
 }
 
 .form-actions {
-  margin-top: 24px;
+  margin-top: 1.5rem;
 }
 
 .card-actions {
   display: flex;
   justify-content: center;
-  padding: 16px;
-}
-
-.card-actions a {
-  color: #3498db;
-  text-decoration: none;
-}
-
-.card-actions a:hover {
-  text-decoration: underline;
+  padding-top: 1rem;
 }
 
 .spinner {
