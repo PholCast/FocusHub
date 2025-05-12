@@ -10,9 +10,12 @@ import { RemindersModule } from './reminders/reminders.module';
 import { ProductivityModule } from './productivity/productivity.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [
+  imports: [ConfigModule.forRoot({
+      isGlobal: true, // hace que esté disponible en toda la app
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',

@@ -16,7 +16,7 @@ export class SignInComponent {
   private router = inject(Router);
   // Registration form with validation rules
   registryForm = this.fb.nonNullable.group({
-    username: ['', [Validators.required, Validators.minLength(3)]],
+    name: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
     repeatPassword: ['', [Validators.required]]
@@ -34,7 +34,7 @@ export class SignInComponent {
       return;
     }
 
-    const { username, email, password, repeatPassword } = this.registryForm.getRawValue();
+    const { name, email, password, repeatPassword } = this.registryForm.getRawValue();
 
     if (password !== repeatPassword) {
       await Swal.fire({
@@ -47,7 +47,7 @@ export class SignInComponent {
       return;
     }
 
-    const success = this.authService.signUp({ username, email, password });
+    const success = this.authService.signUp({ name, email, password });
     
     if (success) {
       await Swal.fire({
@@ -59,16 +59,26 @@ export class SignInComponent {
       });
       this.router.navigate(['/log-in']);
     } else {
-      const users = this.authService.users;
-      if (users.some(user => user.email === email)) {
+      // const users = this.authService.users;
+      // if (users.some(user => user.email === email)) {
+      //   await Swal.fire({
+      //     title: "Error",
+      //     text: "Este correo electrónico ya está registrado",
+      //     icon: "error",
+      //     color: "#716add",
+      //     backdrop: `rgba(0,0,123,0.4) left top no-repeat`
+      //   });
+      // } 
+      const success = await this.authService.signUp({ name, email, password });
+      if (!success) {
         await Swal.fire({
           title: "Error",
-          text: "Este correo electrónico ya está registrado",
+          text: "Error en el registro. Por favor intente nuevamente.",
           icon: "error",
           color: "#716add",
           backdrop: `rgba(0,0,123,0.4) left top no-repeat`
         });
-      } else {
+      }else {
         await Swal.fire({
           title: "Error",
           text: "Error en el registro. Por favor intente nuevamente.",

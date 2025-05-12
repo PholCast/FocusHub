@@ -1,100 +1,91 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
 import { User } from '../shared/interfaces/user.interface';
+import { environment } from '../../environments/environment'; // Asegúrate de tener tu URL base aquí
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  // LocalStorage keys for user data
-  private readonly USERS_KEY = 'users';
-  private readonly CURRENT_USER_KEY = 'currentUser';
+  private readonly TOKEN_KEY = 'access_token';
 
-  constructor(private router: Router) {
-    this.currentUser = localStorage.getItem('currentUser')
-      ? JSON.parse(localStorage.getItem('currentUser')!)
-      : null;
-  }
-  // Getter/setter for all registered users
-  get users(): User[] {
-    const usersString = localStorage.getItem(this.USERS_KEY);
-    return usersString ? JSON.parse(usersString) : [];
-  }
+  constructor(private http: HttpClient, private router: Router) {}
 
-  set users(users: User[]) {
-    localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
-  }
-  // Getter/setter for currently logged in user
-  get currentUser(): User | null {
-    const currentUserString = localStorage.getItem(this.CURRENT_USER_KEY);
-    return currentUserString ? JSON.parse(currentUserString) : null;
-  }
-
-  set currentUser(user: User | null) {
-    if (user) {
-      localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(this.CURRENT_USER_KEY);
-    }
+  // Método para registrar un usuario
+  signUp(userData: User) {
+    return this.http.post(`${environment.apiUrl}/auth/register`, userData).subscribe({
+      next: () => {
+        Swal.fire({
+          title: "Éxito",
+          text: "Registro exitoso, ahora puedes iniciar sesión.",
+          icon: "success",
+          confirmButtonText: "Aceptar"
+        });
+        this.router.navigate(['/log-in']);
+      },
+      error: () => {
+        Swal.fire({
+          title: "Error",
+          text: "Error al registrar el usuario.",
+          icon: "error",
+          confirmButtonText: "Aceptar"
+        });
+      }
+    });
   }
 
-  signUp(userData: User): boolean {
-    const { username, email, password } = userData;
-    if (!username || !email || !password) {
-      console.warn('Validación fallida: Campos vacíos');
-      return false;
-    }
-
-    const users = this.users;
-    if (users.some(user => user.email === email)) {
-      console.warn(`Intento de registro con email existente: ${email}`);
-      return false;
-    }
-
-    const newUser = { username, email, password };
-    this.users = [...users, newUser];
-    return true;
+  // Método para iniciar sesión
+  logIn(credentials: { email: string; password: string }) {
+    return this.http.post<{ access_token: string; user: User }>(`${environment.apiUrl}/auth/login`, credentials).subscribe({
+      next: (response) => {
+        this.setToken(response.access_token);
+        this.router.navigate(['/home']);
+        Swal.fire({
+          title: "Éxito",
+          text: `Bienvenido, ${response.user.name}!`,
+          icon: "success",
+          confirmButtonText: "Aceptar"
+        });
+      },
+      error: () => {
+        Swal.fire({
+          title: "Error",
+          text: "Credenciales incorrectas.",
+          icon: "error",
+          confirmButtonText: "Aceptar"
+        });
+      }
+    });
   }
 
-  logIn(credentials: Pick<User, 'email' | 'password'>): boolean {
-    const { email, password } = credentials;
-    if (!email || !password) {
-      console.warn('Validación fallida: Campos vacíos en login');
-      return false;
-    }
+  // Método para cerrar sesión
+  logOut() {
+    this.clearToken();
+    this.router.navigate(['/log-in']);
+    Swal.fire({
+      title: "Sesión cerrada",
+      text: "Has cerrado sesión correctamente.",
+      icon: "info",
+      confirmButtonText: "Aceptar"
+    });
+  }
 
-    const user = this.users.find(user => user.email === email);
+  // Métodos para manejar el token
+  private setToken(token: string) {
+    localStorage.setItem(this.TOKEN_KEY, token);
+  }
 
-    if (!user) {
-      console.warn(`Intento de login con email no registrado: ${email}`);
-      return false;
-    }
+  private clearToken() {
+    localStorage.removeItem(this.TOKEN_KEY);
+  }
 
-    if (user.password !== password) {
-      console.warn('Contraseña incorrecta para:', email);
-      return false;
-    }
-
-    this.currentUser = user;
-    return true;
+  getToken(): string | null {
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 
   isAuthenticated(): boolean {
-    return !!this.currentUser;
-  }
-
-  logOut(): void {
-    localStorage.removeItem('currentUser');
-    this.currentUser = null;
-    this.router.navigate(['/log-in']);
-
-    Swal.fire({
-      icon: 'info',
-      title: 'Sesión cerrada',
-      text: 'Has cerrado sesión correctamente.',
-      confirmButtonText: 'Aceptar'
-    });
-
+    return !!this.getToken();
   }
 }
