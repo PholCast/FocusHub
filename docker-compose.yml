@@ -1,14 +1,10 @@
 services:
   frontend:
-      #build:
-        #context: ./FocusHub-app
-        #dockerfile: Dockerfile
       image: pholcast25/focus-hub-angular:latest  # Imagen para Docker Hub
       ports:
         - "4200:4200"
       volumes:
         - ./FocusHub-app:/app
-        #- /app/node_modules
       command: npm run start
       environment:
         - NODE_ENV=development
@@ -16,9 +12,6 @@ services:
         - backend
 
   backend:
-    #build:
-      #context: ./focus-hub-backend  # Directorio donde se encuentra el Dockerfile del backend
-      #dockerfile: Dockerfile
     image: pholcast25/focus-hub-nest-js:latest
     ports:
       - '3000:3000'
@@ -26,7 +19,6 @@ services:
       - PORT=3000
       - NODE_ENV=development
     volumes:
-      #- ./src:/usr/src/app/src
       - ./focus-hub-backend:/usr/src/app
   mysql_db:
     image: mysql
