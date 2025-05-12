@@ -18,11 +18,11 @@ import { ConfigModule } from '@nestjs/config';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: 'Micontrasena',
-      database: 'focusHubDatabase',
+      host: 'mysql_db',
+      port: 3307,
+      username: 'testuser',
+      password: 'testuser123',
+      database: 'focus_hub_database',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // Solo para desarrollo, no usar en producción
       logging: true,
