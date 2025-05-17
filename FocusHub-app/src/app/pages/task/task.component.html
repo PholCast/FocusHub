@@ -13,7 +13,7 @@
 
         <h2>Tareas pendientes</h2>
         <ul class="task-list">
-            <li *ngFor="let task of pendingTasks" [class.completed]="task.status">
+            <li *ngFor="let task of pendingTasks" [class.status]="task.status">
                 <div class="task-item">
                     <input type="checkbox" [checked]="task.status" (change)="toggleComplete(task.id)">
                     <span (click)="openTaskDetails(task)">{{ task.title }}</span>
@@ -62,7 +62,7 @@
             <button class="close-btn" (click)="closeDetails()">×</button>
         </div>
 
-        <div class="task-details-content" [class.completed]="selectedTask.status">
+        <div class="task-details-content" [class.status]="selectedTask.status">
             <div class="task-item-panel">
                 <input type="checkbox" 
                        [checked]="selectedTask.status" 

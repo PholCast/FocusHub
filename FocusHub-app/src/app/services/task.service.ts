@@ -24,7 +24,7 @@ export class TaskService {
     const tasks = this.getTasks();
     const updatedTasks = tasks.map(task => {
       if (task.id === id) {
-        return { ...task, completed: !task.status };
+        return { ...task, status: !task.status };
       }
       return task;
     });
@@ -52,8 +52,9 @@ export class TaskService {
       const newTask = {
         ...taskToDuplicate,
         id: Math.max(...tasks.map(t => t.id)) + 1,
-        completed: false,
-        createdDate: new Date().toISOString()
+        status: false,
+        createdAt: new Date().toISOString(),
+        user_id: null
       };
       tasks.push(newTask);
       localStorage.setItem('tasks', JSON.stringify(tasks));
