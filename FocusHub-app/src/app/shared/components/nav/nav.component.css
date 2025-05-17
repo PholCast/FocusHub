@@ -22,6 +22,7 @@
 
 /* Estilos para los Enlaces de Navegación */
 .nav-shortcuts a {
+    cursor: pointer;
     color: #2196F3; /* Color secundario: Azul (Material Design Blue 500) */
     text-decoration: none; /* Sin subrayado */
     padding: 12px 20px; /* Espaciado interno para cada enlace */
