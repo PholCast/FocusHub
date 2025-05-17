@@ -36,18 +36,18 @@ export class TaskComponent implements OnInit {
 
   get pendingTasks(): Task[] {
     return this.tasks.filter(task => 
-      !task.completed && 
+      !task.status && 
       (!task.dueDate || new Date(task.dueDate) >= new Date())
     );
   }
 
   get completedTasks(): Task[] {
-    return this.tasks.filter(task => task.completed);
+    return this.tasks.filter(task => task.status);
   }
 
   get expiredTasks(): Task[] {
     return this.tasks.filter(task => 
-      !task.completed && 
+      !task.status && 
       task.dueDate && 
       new Date(task.dueDate) < new Date()
     );
@@ -58,8 +58,9 @@ export class TaskComponent implements OnInit {
       const newTask: Task = {
         id: 0,
         title: title.trim(),
-        completed: false,
-        createdDate: new Date().toISOString()
+        status: false,
+        createdAt: new Date().toISOString(),
+        user_id: null
       };
       this.taskService.addTask(newTask);
       this.loadTasks();
@@ -72,7 +73,7 @@ export class TaskComponent implements OnInit {
 
     this.tasks = this.tasks.map(task => {
       if (task.id === id) {
-        const updatedTask = { ...task, completed: !task.completed };
+        const updatedTask = { ...task, status: !task.status };
         
 
         if (this.selectedTask && this.selectedTask.id === id) {
@@ -100,7 +101,7 @@ export class TaskComponent implements OnInit {
   }
 
   saveTaskDetails(): void {
-    if (this.selectedTask && !this.selectedTask.completed) {
+    if (this.selectedTask && !this.selectedTask.status) {
       this.taskService.updateTask(this.selectedTask);
       this.tasks = this.tasks.map(task => 
         task.id === this.selectedTask!.id ? this.selectedTask! : task

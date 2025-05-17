@@ -21,10 +21,10 @@ import { ConfigModule } from '@nestjs/config';
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: 'Micontrasena',
+      password: '1234',
       database: 'focusHubDatabase',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // Solo para desarrollo, no usar en producción
+      synchronize: false, // Solo para desarrollo, no usar en producción
       logging: true,
     }),
     UsersModule,

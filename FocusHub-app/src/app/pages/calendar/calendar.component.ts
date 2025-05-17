@@ -36,12 +36,16 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
   timeError: boolean = false;
   availableMinutes: number[] = [0, 30];
 
+  // In CalendarComponent class
   newEvent: CalendarEvent = {
     id: 0,
     title: '',
-    start: '',
-    end: '',
-    description: ''
+    startTime: '', // Changed from 'start'
+    endTime: '',   // Changed from 'end'
+    description: '',
+    createdAt: null, // As per requirement: always null
+    user_id: null,   // As per requirement: always null
+    category_id: null // As per requirement: always null
   };
 
   newTask: Partial<Task> = {
@@ -78,7 +82,7 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
   }
 
   isTask(item: Task | CalendarEvent): item is Task {
-    return 'completed' in item;
+    return 'status' in item;
   }
 
   // loadData is no longer needed for events, rename or remove if only tasks remain
@@ -105,7 +109,7 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
 
   // Keep this method, it correctly checks if an event starts *at* the given hour on the given date
   isFirstHourOfEvent(event: CalendarEvent, date: Date, hour: number): boolean {
-    const eventStart = new Date(event.start);
+    const eventStart = new Date(event.startTime);
     const eventDateStr = eventStart.toISOString().split('T')[0];
     const currentDateStr = date.toISOString().split('T')[0];
 
@@ -120,20 +124,10 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
       // But as a safeguard, if it somehow is, it's not the first hour *on this day*.
       return false;
     }
-
-    // Check if the event starts exactly at or after the beginning of this hour,
-    // and before the next hour.
     const eventStartTime = eventStart.getTime();
     const hourStartTime = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate(), hour, 0).getTime();
     const nextHourStartTime = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate(), hour + 1, 0).getTime();
 
-
-    // The event's start time must be within the current hour slot (inclusive of start, exclusive of end)
-    // AND the hour we are currently checking must be the *first* hour the event spans.
-    // A simpler check for "first hour" in the context of the rendering loop:
-    // Is the event's start hour equal to the current hour being processed?
-    // This works because the events are positioned absolutely within the hour slot based on minutes.
-    // We only want the title at the very beginning of the event's visual representation.
     return eventStart.getHours() === hour;
   }
 
@@ -250,7 +244,7 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     const dateStr = date.toISOString().split('T')[0];
 
     // Filter events that start on the given date (ignoring time)
-    const timedEvents = this.events.filter(event => event.start && event.start.split('T')[0] === dateStr);
+    const timedEvents = this.events.filter(event => event.startTime && event.startTime.split('T')[0] === dateStr);
 
     // Filter tasks with a due date on the given date
     const tasksWithDueDate = this.tasks.filter(task => task.dueDate && task.dueDate.split('T')[0] === dateStr);
@@ -276,8 +270,8 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
 
       // If both are events, sort by start time (already done in service, but re-sort here for combined list)
       if (!aIsTask && !bIsTask) {
-        const dateA = new Date((a as CalendarEvent).start).getTime();
-        const dateB = new Date((b as CalendarEvent).start).getTime();
+        const dateA = new Date((a as CalendarEvent).startTime).getTime();
+        const dateB = new Date((b as CalendarEvent).startTime).getTime();
         return dateA - dateB;
       }
 
@@ -293,7 +287,7 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     const dateStr = date.toISOString().split('T')[0];
 
     // Filter events that start on the given date AND have a time component
-    return this.events.filter(event => event.start && event.start.split('T')[0] === dateStr && event.start.includes('T'));
+    return this.events.filter(event => event.startTime && event.startTime.split('T')[0] === dateStr && event.startTime.includes('T'));
   }
 
 
@@ -308,10 +302,10 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     const dateStr = date.toISOString().split('T')[0];
 
     return this.events.filter(event => {
-      if (!event.start || !event.end) return false; // Ensure start and end exist
+      if (!event.startTime || !event.endTime) return false; // Ensure start and end exist
 
-      const eventStartDate = new Date(event.start);
-      const eventEndDate = new Date(event.end);
+      const eventStartDate = new Date(event.startTime);
+      const eventEndDate = new Date(event.endTime);
       const eventDateStr = eventStartDate.toISOString().split('T')[0];
 
       // Check if the event's start date matches the current date being processed
@@ -329,15 +323,15 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
 
 
   getEventTopPosition(event: CalendarEvent): string {
-    const start = new Date(event.start);
+    const start = new Date(event.startTime);
     const minutes = start.getMinutes();
 
     return `${(minutes / 60) * 100}%`;
   }
 
   getEventHeight(event: CalendarEvent): string {
-    const start = new Date(event.start);
-    const end = new Date(event.end);
+    const start = new Date(event.startTime);
+    const end = new Date(event.endTime);
     const durationInMinutes = (end.getTime() - start.getTime()) / (1000 * 60); // Duration in minutes
 
     // Ensure duration is non-negative
@@ -386,8 +380,8 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     this.timeError = false;
 
     // Actualizar las fechas en newEvent
-    this.newEvent.start = start.toISOString();
-    this.newEvent.end = end.toISOString();
+    this.newEvent.startTime = start.toISOString();
+    this.newEvent.endTime = end.toISOString();
   }
 
   openEventForm(date: Date, hour?: number): void {
@@ -411,7 +405,6 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     this.endHour = defaultEndTime.getHours();
     this.endMinute = defaultEndTime.getMinutes();
 
-
     // Initialize newEvent with default times and reset timeError
     const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), this.startHour, this.startMinute);
     let end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), this.endHour, this.endMinute);
@@ -428,9 +421,12 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     this.newEvent = {
       id: 0, // ID is 0 for a new event
       title: '',
-      start: start.toISOString(),
-      end: end.toISOString(),
-      description: ''
+      startTime: start.toISOString(), // Use startTime
+      endTime: end.toISOString(),     // Use endTime
+      description: '',
+      createdAt: null, // As per requirement: always null
+      user_id: null,   // As per requirement: always null
+      category_id: null // As per requirement: always null
     };
     this.timeError = false; // Reset error on opening form
 
@@ -474,10 +470,15 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     this.showTaskForm = false;
 
     // Deep copy the event to avoid modifying the original data directly
-    this.newEvent = { ...event };
+    this.newEvent = {
+      ...event,
+      createdAt: null,
+      user_id: null,
+      category_id: null
+    };
 
-    const startDate = new Date(this.newEvent.start);
-    const endDate = new Date(this.newEvent.end);
+    const startDate = new Date(this.newEvent.startTime);
+    const endDate = new Date(this.newEvent.endTime);
 
     // Format the start date for the date input
     this.eventDate = formatDate(startDate, 'yyyy-MM-dd', 'en-US');
@@ -648,9 +649,10 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
       const taskToSave: Task = {
         id: 0, // ID will be assigned by the TaskService
         title: this.newTask.title,
-        completed: false, // Tasks created here are initially not completed
-        createdDate: new Date().toISOString(), // Set creation date
-        dueDate: this.newTask.dueDate // Use the selected date as the due date
+        status: false, // Tasks created here are initially not completed
+        createdAt: new Date().toISOString(), // Set creation date
+        dueDate: this.newTask.dueDate,
+        user_id: null // Use the selected date as the due date
         // Description, priority, etc. are not handled in this form, as per original logic/alert
       };
       this.taskService.addTask(taskToSave);
