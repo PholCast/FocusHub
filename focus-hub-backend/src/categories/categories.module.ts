@@ -9,7 +9,7 @@ import { UsersModule } from 'src/users/users.module';
   imports: [TypeOrmModule.forFeature([Category]),UsersModule],
   providers: [CategoriesService],
   controllers: [CategoriesController],
-  exports: [CategoriesService],  
+  exports: [CategoriesService, TypeOrmModule],  
 
 })
 export class CategoriesModule {}

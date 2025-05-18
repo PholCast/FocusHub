@@ -22,6 +22,6 @@ import { MediaService } from 'src/media/media.service';
   ],
   controllers: [UsersController],
   providers: [UsersService,MediaService],
-  exports: [UsersService],  // Si el servicio es necesario en otros módulos
+  exports: [UsersService, TypeOrmModule],  // Si el servicio es necesario en otros módulos
 })
 export class UsersModule {}

@@ -19,7 +19,7 @@ export class Event {
   startTime: Date;
 
   @Column({ type: 'datetime', nullable: true, default: null })
-  endTime?: Date;
+  endTime: Date | null;
 
   // @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   // createdAt: Date;
@@ -33,7 +33,7 @@ export class Event {
 
   @ManyToOne(() => Category, (category) => category.events, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'category_id' })
-  category?: Category;
+  category: Category | null;
 
   // Relación uno a uno con EventReminder
   @OneToOne(() => EventReminder, (eventReminder) => eventReminder.event, { nullable: true })

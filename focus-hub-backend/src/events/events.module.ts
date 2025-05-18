@@ -8,11 +8,12 @@ import { EventReminder } from 'src/reminders/entities/event-reminder.entity';
 import { UsersModule } from 'src/users/users.module';
 import { CategoriesModule } from 'src/categories/categories.module';
 import { RemindersModule } from 'src/reminders/reminders.module';
+import { Event } from './event.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Event]),CategoriesModule,UsersModule,forwardRef(() => RemindersModule)],
   providers: [EventsService],
   controllers: [EventsController],
-  exports: [EventsService],
+  exports: [EventsService, TypeOrmModule ],
 })
 export class EventsModule {}
