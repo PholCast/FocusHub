@@ -30,11 +30,19 @@ export class EventsService {
       if (!category) throw new NotFoundException('Category not found')
     }
 
+    const start = new Date(dto.startTime)
+    const end = dto.endTime ? new Date(dto.endTime) : null
+
+    // ✅ Validación de coherencia de fechas
+    if (end && end < start) {
+      throw new Error('End time cannot be before start time')
+    }
+
     const event = this.eventRepository.create({
       title: dto.title,
       description: dto.description,
-      startTime: new Date(dto.startTime),
-      endTime: dto.endTime ? new Date(dto.endTime) : null,
+      startTime: start,
+      endTime: end,
       user,
       ...(category ? { category } : {}),
     })
