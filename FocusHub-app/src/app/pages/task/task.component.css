@@ -117,11 +117,11 @@ h1 {
   cursor: not-allowed;
 }
 
-.task-details-content.completed .task-item-panel {
+.task-details-content.status .task-item-panel {
   opacity: 0.8;
 }
 
-.task-details-content.completed .task-title-input {
+.task-details-content.status .task-title-input {
   text-decoration: line-through;
 }
 
@@ -170,7 +170,7 @@ h1 {
   margin-left: 10px;
 }
 
-.task-list li.completed .task-item {
+.task-list li.status .task-item {
   text-decoration: line-through;
   color: #888;
   opacity: 0.8;
@@ -234,7 +234,7 @@ h1 {
   padding: 5px;
 }
 
-.task-details-content.completed {
+.task-details-content.status {
   opacity: 0.8;
 }
 
@@ -342,7 +342,7 @@ h1 {
   }
   
   .task-details-panel {
-    width: 100%;
+    width: 90%;
     position: static;
     margin-top: 20px;
   }
