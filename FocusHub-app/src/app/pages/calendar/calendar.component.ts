@@ -12,7 +12,7 @@ import { NavComponent } from '../../shared/components/nav/nav.component';
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [NavComponent,CommonModule, FormsModule],
+  imports: [NavComponent, CommonModule, FormsModule],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.css']
 })
@@ -41,10 +41,10 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     id: 0,
     title: '',
     startTime: '', // Changed from 'start'
-    endTime: '',   // Changed from 'end'
+    endTime: '',   // Changed from 'end'
     description: '',
     createdAt: null, // As per requirement: always null
-    user_id: null,   // As per requirement: always null
+    user_id: null,   // As per requirement: always null
     category_id: null // As per requirement: always null
   };
 
@@ -108,26 +108,26 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
   }
 
   // Keep this method, it correctly checks if an event starts *at* the given hour on the given date
+  // This is used in the template to decide if the event title should be displayed.
+  // En calendar.component.ts
   isFirstHourOfEvent(event: CalendarEvent, date: Date, hour: number): boolean {
     const eventStart = new Date(event.startTime);
-    const eventDateStr = eventStart.toISOString().split('T')[0];
-    const currentDateStr = date.toISOString().split('T')[0];
 
-    // If the event date doesn't match the current date, it won't be the first hour
-    // However, the getEventsForHour method should already filter for the correct date.
-    // Re-evaluating this logic: This method is likely used to determine if the event title should be displayed
-    // at the top of its rendered block in the weekly/daily view.
-    // It should check if the *event's start time* matches the *exact hour* slot being rendered.
-    // Let's refine the condition slightly:
-    if (eventDateStr !== currentDateStr) {
-      // This event shouldn't even be processed for this date/hour slot based on getEventsForHour
-      // But as a safeguard, if it somehow is, it's not the first hour *on this day*.
+    // Compara año, mes y día directamente para evitar problemas de zona horaria con toISOString()
+    const eventYear = eventStart.getFullYear();
+    const eventMonth = eventStart.getMonth();
+    const eventDay = eventStart.getDate();
+
+    const currentYear = date.getFullYear();
+    const currentMonth = date.getMonth();
+    const currentDay = date.getDate();
+
+    // Verifica si la fecha del evento coincide con la fecha actual que se está procesando
+    if (eventYear !== currentYear || eventMonth !== currentMonth || eventDay !== currentDay) {
       return false;
     }
-    const eventStartTime = eventStart.getTime();
-    const hourStartTime = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate(), hour, 0).getTime();
-    const nextHourStartTime = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate(), hour + 1, 0).getTime();
 
+    // Verifica si la hora de inicio del evento coincide con el slot de hora actual
     return eventStart.getHours() === hour;
   }
 
@@ -198,7 +198,9 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
 
     // Add days from the next month to fill the last week row(s)
     const totalDaysDisplayed = days.length;
-    const remainingSlots = (42 - totalDaysDisplayed) % 7; // Ensure a full 6-week grid (42 days)
+    // Calculate remaining slots to fill up to a multiple of 7 (for full weeks)
+    const remainingSlots = totalDaysDisplayed % 7 === 0 ? 0 : 7 - (totalDaysDisplayed % 7);
+
 
     for (let i = 0; i < remainingSlots; i++) {
       const date = new Date(year, month + 1, i + 1);
@@ -237,6 +239,7 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     });
 
   }
+
 
 
   getEventsForDate(date: Date): (CalendarEvent | Task)[] {
@@ -298,26 +301,29 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
   }
 
 
+  // This function returns events that *overlap* with the given hour slot.
+  // This is needed to display events that start before the hour but continue into it.
+  // Note: Visual representation of events crossing midnight is a rendering limitation
+  // with the current CSS grid structure, where events are positioned within their start day's column.
   getEventsForHour(date: Date, hour: number): CalendarEvent[] {
-    const dateStr = date.toISOString().split('T')[0];
+    const targetYear = date.getFullYear();
+    const targetMonth = date.getMonth();
+    const targetDay = date.getDate();
 
     return this.events.filter(event => {
-      if (!event.startTime || !event.endTime) return false; // Ensure start and end exist
+      if (!event.startTime) return false; // Asegurarse de que startTime existe
 
-      const eventStartDate = new Date(event.startTime);
-      const eventEndDate = new Date(event.endTime);
-      const eventDateStr = eventStartDate.toISOString().split('T')[0];
+      const eventStart = new Date(event.startTime);
+      const eventYear = eventStart.getFullYear();
+      const eventMonth = eventStart.getMonth();
+      const eventDay = eventStart.getDate();
+      const eventHour = eventStart.getHours();
 
-      // Check if the event's start date matches the current date being processed
-      if (eventDateStr !== dateStr) return false;
-
-      const hourStartTime = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate(), hour, 0).getTime();
-      const nextHourStartTime = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate(), hour + 1, 0).getTime();
-
-      // An event is relevant for a given hour slot if its start time is before the end of the hour slot
-      // AND its end time is strictly after the beginning of the hour slot.
-      // Using > hourStartTime ensures events that start exactly at the top of the hour are included.
-      return eventStartDate.getTime() < nextHourStartTime && eventEndDate.getTime() > hourStartTime;
+      // Filtra el evento solo si comienza en la fecha y hora exactas
+      return eventYear === targetYear &&
+        eventMonth === targetMonth &&
+        eventDay === targetDay &&
+        eventHour === hour;
     });
   }
 
@@ -332,54 +338,53 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
   getEventHeight(event: CalendarEvent): string {
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
-    const durationInMinutes = (end.getTime() - start.getTime()) / (1000 * 60); // Duration in minutes
 
-    // Ensure duration is non-negative
-    const validDuration = Math.max(0, durationInMinutes);
+    // Calcular duración en horas, incluyendo fracciones
+    const durationInHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
-    return `${(validDuration / 60) * 100}%`;
+    // Asegurar que la duración no sea negativa y limitar a 24 horas máximo
+    const validDuration = Math.max(0, Math.min(durationInHours, 24));
+
+    return `${validDuration * 100}%`;
   }
-
 
   updateEventTimes(): void {
     // Validación de fecha
     if (!this.eventDate || typeof this.eventDate !== 'string') {
-      this.timeError = true;
-      console.error("Invalid or empty eventDate:", this.eventDate);
-      return;
+        this.timeError = true;
+        return;
     }
 
     const dateParts = this.eventDate.split('-').map(part => parseInt(part, 10));
-
     if (dateParts.some(isNaN) || dateParts.length !== 3) {
-      this.timeError = true;
-      console.error("Invalid date parts:", this.eventDate);
-      return;
+        this.timeError = true;
+        return;
     }
 
     const year = dateParts[0];
     const monthIndex = dateParts[1] - 1;
     const day = dateParts[2];
 
-    // Crear objetos Date para las horas de inicio y fin
-    const start = new Date(year, monthIndex, day, this.startHour, this.startMinute);
-    const end = new Date(year, monthIndex, day, this.endHour, this.endMinute);
-
-    // Comprobar si la hora final es anterior a la hora de inicio
-    if (end.getTime() <= start.getTime()) {
-      // Permitir solo si el evento termina al día siguiente (medianoche)
-      const isMidnightEvent = end.getHours() === 0 && end.getMinutes() === 0;
-
-      if (!isMidnightEvent) {
-        this.timeError = true;
-        return;
-      }
+    // Forzar 59 minutos si es hora final 23
+    if (this.endHour === 23 && this.endMinute !== 59) {
+        this.endMinute = 59;
     }
 
-    // Si pasa la validación, no hay error
-    this.timeError = false;
+    const start = new Date(year, monthIndex, day, this.startHour, this.startMinute);
+    let end = new Date(year, monthIndex, day, this.endHour, this.endMinute);
 
-    // Actualizar las fechas en newEvent
+    // Asegurar fin de día correcto
+    if (this.endHour === 23 && this.endMinute === 59) {
+        end.setHours(23, 59, 59, 999);
+    }
+
+    // Validar que end sea después de start
+    if (end <= start) {
+        this.timeError = true;
+        return;
+    }
+
+    this.timeError = false;
     this.newEvent.startTime = start.toISOString();
     this.newEvent.endTime = end.toISOString();
   }
@@ -388,52 +393,74 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     this.showTaskForm = false;
     this.selectedDate = date;
 
-    // Format the date to 'YYYY-MM-DD' for the input type="date"
+    // Formatear fecha
     this.eventDate = formatDate(date, 'yyyy-MM-dd', 'en-US');
 
-    // Determine default start/end times based on click or default
+    // Determinar hora y minuto inicial
     const clickedHour = hour !== undefined ? Math.floor(hour) : 9;
     const clickedMinute = hour !== undefined && hour % 1 !== 0 ? 30 : 0;
 
     this.startHour = clickedHour;
-    this.startMinute = clickedMinute;
+    this.startMinute = clickedMinute; // Si es 23h, minuto 59
 
-    // Default end time is 1 hour after start time
-    let defaultEndTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), clickedHour, clickedMinute);
+    let defaultEndTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), this.startHour, this.startMinute);
     defaultEndTime.setHours(defaultEndTime.getHours() + 1);
 
     this.endHour = defaultEndTime.getHours();
     this.endMinute = defaultEndTime.getMinutes();
-
-    // Initialize newEvent with default times and reset timeError
-    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), this.startHour, this.startMinute);
-    let end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), this.endHour, this.endMinute);
-
-    // Ensure end time is after start time, even for the default
-    if (end.getTime() <= start.getTime()) {
-      const diffInMinutes = (end.getHours() * 60 + end.getMinutes()) - (start.getHours() * 60 + start.getMinutes());
-      if (diffInMinutes <= 0) {
-        end.setDate(end.getDate() + 1);
-      }
+    
+    // Establecer hora final
+    if (this.startHour === 23) {
+        // Caso especial: si empieza a las 23h, termina a las 23:59
+        this.endHour = 23;
+        this.endMinute = 59;
+    } else {
+        // Comportamiento normal: 1 hora después
+        const defaultEndTime = new Date(
+            date.getFullYear(), 
+            date.getMonth(), 
+            date.getDate(), 
+            this.startHour, 
+            this.startMinute
+        );
+        defaultEndTime.setHours(defaultEndTime.getHours() + 1);
+        
+        this.endHour = defaultEndTime.getHours();
+        this.endMinute = defaultEndTime.getMinutes();
+                
     }
 
+    // Resto del método...
+    const start = new Date(
+        date.getFullYear(), 
+        date.getMonth(), 
+        date.getDate(), 
+        this.startHour, 
+        this.startMinute
+    );
+    
+    const end = new Date(
+        date.getFullYear(), 
+        date.getMonth(), 
+        date.getDate(), 
+        this.endHour, 
+        this.endMinute
+    );
 
     this.newEvent = {
-      id: 0, // ID is 0 for a new event
-      title: '',
-      startTime: start.toISOString(), // Use startTime
-      endTime: end.toISOString(),     // Use endTime
-      description: '',
-      createdAt: null, // As per requirement: always null
-      user_id: null,   // As per requirement: always null
-      category_id: null // As per requirement: always null
+        id: 0,
+        title: '',
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        description: '',
+        createdAt: null,
+        user_id: null,
+        category_id: null
     };
-    this.timeError = false; // Reset error on opening form
-
+    
+    this.timeError = false;
     this.showEventForm = true;
   }
-
-
   openTaskForm(date: Date): void {
     this.showEventForm = false;
     this.selectedDate = date;
@@ -515,10 +542,9 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     // based on the current form values.
     // We rely on the disabled button and this check here.
     if (this.timeError) {
-      alert('La hora de fin debe ser posterior a la hora de inicio.');
+      alert('La hora de fin debe ser posterior a la hora de inicio y no puede exceder la medianoche del día siguiente.');
       return; // Prevent saving if there's a time error
     }
-
 
     // Call the appropriate service method (add or update)
     if (this.newEvent.id === 0) {
@@ -526,10 +552,10 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     } else {
       this.eventService.updateEvent(this.newEvent);
     }
-
     // No need to call loadData() or loadTasks() here for events, the subscription handles it.
 
     this.showEventForm = false;
+
 
     // No explicit updateWeekDays needed here for events, the template will react to subscribed data.
   }

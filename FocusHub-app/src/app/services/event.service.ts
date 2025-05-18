@@ -24,6 +24,7 @@ export class EventService {
     localStorage.setItem('calendarEvents', JSON.stringify(events));
   }
 
+  // En tu event.service.ts
   addEvent(event: Omit<CalendarEvent, 'id'>): void {
     const currentEvents = this._eventsSubject.value;
     const newEvent: CalendarEvent = {
@@ -32,14 +33,29 @@ export class EventService {
       description: event.description || undefined,
       createdAt: event.createdAt || new Date().toISOString(),
       user_id: null,
-      category_id: null
+      category_id: null,
+      // Asegurar que las fechas se guarden como strings ISO sin conversión UTC
+      startTime: this.formatDateString(event.startTime),
+      endTime: this.formatDateString(event.endTime)
     };
-    
+
     const updatedEvents = [...currentEvents, newEvent];
     updatedEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    
+
     this.saveEventsToStorage(updatedEvents);
     this._eventsSubject.next(updatedEvents);
+  }
+
+  // Nueva función auxiliar para formatear fechas correctamente
+  private formatDateString(dateString: string): string {
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Si no es una fecha válida, devolver original
+
+    // Formatear manualmente para evitar problemas de zona horaria
+    const pad = (num: number) => num.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
   }
 
   updateEvent(updatedEvent: CalendarEvent): void {
@@ -47,7 +63,7 @@ export class EventService {
     const updatedEvents = currentEvents.map(event =>
       event.id === updatedEvent.id ? updatedEvent : event
     );
-    
+
     updatedEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
     this.saveEventsToStorage(updatedEvents);
     this._eventsSubject.next(updatedEvents);

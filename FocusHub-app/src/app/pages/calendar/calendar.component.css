@@ -333,14 +333,15 @@
     padding: 2px 5px;
     border-radius: 3px;
     font-size: 0.8rem;
-        background-color: #e3f2fd;
+    background-color: #e3f2fd;
     color: #1976d2;
     border-left: 3px solid #1976d2;
     pointer-events: auto;
-        box-sizing: border-box;
+    box-sizing: border-box;
     z-index: 3;
-            overflow-y: hidden;
-    }
+    overflow-y: hidden;
+
+}
 
 .event-title {
             overflow: hidden;
@@ -674,7 +675,10 @@
 
 @media (max-width: 768px) {
     .calendar-container {
-        padding: 10px;
+        padding: 10px; /* Reduce padding */
+        margin-left: 0 !important; /* Ensure no left margin from global styles */
+        /* Adjust margin-top if needed to clear horizontal nav */
+        /* margin-top: 60px; */
     }
 
     .calendar-header {
@@ -684,43 +688,223 @@
     }
 
     .view-toggle {
-        align-self: flex-end;
+        align-self: flex-end; /* Align toggle button to the right */
     }
 
+    /* Month View Responsive */
+    .calendar-month-view .calendar-grid {
+         gap: 4px; /* Reduce gap between days */
+    }
+
+    .calendar-weekday {
+        padding: 8px; /* Reduce padding */
+        font-size: 0.9rem;
+    }
+
+    .calendar-day {
+        min-height: 80px; /* Reduce minimum height */
+        padding: 3px; /* Reduce padding */
+    }
+
+    .day-number {
+        font-size: 0.9em; /* Reduce font size */
+        margin-bottom: 3px;
+    }
+
+    .day-events {
+        max-height: 60px; /* Reduce max height for events */
+    }
+
+    .day-events .event-item {
+        font-size: 0.7rem; /* Reduce font size */
+        padding: 3px 4px;
+        margin-bottom: 2px;
+    }
+
+
+    /* Week View Responsive */
+    .week-header,
+    .week-tasks-container,
+    .week-grid {
+        /* Reduce hour column width and adjust flexible columns */
+        grid-template-columns: 40px repeat(7, 1fr);
+        width: 90%;
+        gap: 2px; /* Reduce gap between columns in week view grids */
+    }
+
+    .hour-header-placeholder,
+    .hour-column {
+        width: 40px; /* Match hour column width */
+    }
+
+     .week-day {
+         padding: 3px; /* Reduce padding */
+     }
+
+     .day-name {
+         font-size: 0.8em; /* Further reduce font size */
+         margin-bottom: 1px; /* Reduce margin */
+     }
+
+     .day-date {
+         font-size: 0.9em; /* Further adjust font size */
+     }
+
+    .week-tasks-container {
+         padding: 8px 3px 0; /* Adjust padding */
+    }
+
+    .week-tasks-container .day-tasks {
+        margin: 3px; /* Reduce margin */
+        padding: 4px; /* Reduce padding */
+        gap: 2px; /* Reduce gap */
+    }
+
+    .week-tasks-container .day-tasks .event-item.task {
+        font-size: 0.65rem; /* Further reduce font size */
+        padding: 2px 3px; /* Reduce padding */
+        margin-bottom: 1px; /* Reduce margin */
+    }
+
+    .week-tasks-container .day-tasks .add-task-trigger {
+        font-size: 0.7rem; /* Reduce font size */
+        padding: 2px; /* Reduce padding */
+    }
+
+
+    .week-grid {
+        height: calc(24 * 40px); /* Further reduce hour slot height */
+        gap: 2px; /* Match gap with other week grids */
+    }
+
+    .hour-column {
+        grid-template-rows: repeat(24, 40px); /* Match hour slot height */
+    }
+
+    .hour-label {
+        font-size: 0.65rem; /* Further reduce font size */
+        padding: 2px; /* Reduce padding */
+    }
+
+    .day-column {
+        grid-template-rows: repeat(24, 40px); /* Match hour slot height */
+    }
+
+    .hour-slot {
+        height: 40px; /* Match hour slot height */
+    }
+
+    .event-in-slot {
+        font-size: 0.65rem; /* Further reduce font size */
+        padding: 1px 2px; /* Reduce padding */
+        left: 1px; /* Adjust position */
+        right: 1px; /* Adjust position */
+        height: 90%;
+    }
+
+    .event-in-slot .event-title {
+        line-height: 1.1; /* Adjust line height */
+    }
+
+
+    /* Day View Responsive */
     .daily-view-container {
         flex-direction: column;
-        height: auto;
+        height: auto; /* Allow height to be determined by content */
+        min-height: auto; /* Remove min height */
+    }
+
+    .hour-slots-container {
+        flex: auto; /* Allow flex item to size based on content */
+         /* Remove border as tasks container will have one */
+         border: none;
+         border-radius: 0;
+         overflow-y: visible; /* No scroll needed here */
     }
 
     .tasks-container {
+        flex: auto; /* Allow flex item to size based on content */
         margin-left: 0;
-        margin-top: 20px;
+        margin-top: 20px; /* Space above tasks */
+         padding: 15px; /* Keep padding */
+         border: 1px solid #eee; /* Add border */
+         border-radius: 4px;
+         overflow-y: visible; /* No scroll needed here */
+    }
+
+    .tasks-container h4 {
+        font-size: 1em;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+    }
+
+    .tasks-container .event-item.task {
+        font-size: 0.8rem;
+        padding: 6px;
+        margin-bottom: 6px;
+    }
+
+    .daily-view-container .hour-slot {
+        height: 50px; /* Match hour slot height */
+        padding-left: 40px; /* Adjust padding for reduced hour column width */
+    }
+
+    .daily-view-container .hour-slot .hour-label {
+        left: 5px; /* Adjust label position */
+        font-size: 0.7rem; /* Reduce font size */
+    }
+
+    .daily-view-container .event-in-slot {
+        font-size: 0.7rem; /* Reduce font size */
+        padding: 1px 3px;
+    }
+
+    /* Form Overlay Responsive */
+    .event-form {
+        padding: 20px; /* Reduce padding */
+        max-width: 95%; /* Allow form to be almost full width */
+    }
+
+    .event-form h3 {
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        margin-bottom: 5px;
+        font-size: 0.8em;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        padding: 8px; /* Reduce padding */
+        font-size: 0.9rem;
     }
 
     .time-selection {
         flex-direction: column;
-        gap: 15px;
+        gap: 10px; /* Reduce gap */
+        margin-bottom: 15px;
     }
 
-        .week-header,
-    .week-grid {
-        grid-template-columns: 40px repeat(7, 1fr);
-            }
-
-    .hour-header-placeholder,
-    .hour-column {
-        width: 40px;
+    .time-group label {
+        margin-bottom: 5px;
     }
 
-    .hour-label {
-        padding-right: 5px;
-            }
+    .form-actions {
+        flex-direction: column; /* Stack buttons */
+        gap: 8px; /* Reduce gap */
+    }
 
-    .daily-view-container .hour-slot {
-        padding-left: 40px;
-            }
-
-    .daily-view-container .hour-slot .hour-label {
-        left: 2px;
-            }
+    .form-actions button {
+        width: 100%; /* Full width buttons */
+        text-align: center;
+        padding: 10px; /* Adjust padding */
+        font-size: 0.9rem;
+    }
 }

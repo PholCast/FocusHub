@@ -138,6 +138,7 @@
             <input type="date" [(ngModel)]="eventDate" (change)="updateEventTimes()" required>
         </div>
 
+
         <div class="time-selection">
             <div class="time-group">
                 <label>Hora de inicio *</label>
@@ -161,12 +162,14 @@
                     </option>
                 </select>
                 <select [(ngModel)]="endMinute" (change)="updateEventTimes()">
-                    <option *ngFor="let minute of availableMinutes" [value]="minute">
-                        :{{ minute.toString().padStart(2, '0') }}
+                    <option *ngFor="let minute of (endHour === 23 ? [0,30,59] : availableMinutes)" [value]="minute">
+                        {{ minute.toString().padStart(2, '0') }}
                     </option>
                 </select>
             </div>
         </div>
+
+
 
         <div class="form-group">
             <label>Descripción</label>
