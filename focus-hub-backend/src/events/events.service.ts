@@ -25,20 +25,20 @@ export class EventsService {
     if (!user) throw new NotFoundException('User not found');
 
     let category: Category | null | undefined = undefined;
-    if ('category_id' in dto) {
-      if (dto.category_id === null) {
+    if ('categoryId' in dto) {
+      if (dto.categoryId === null) {
         category = null;  // explícito null para borrar la categoría
-      } else if (dto.category_id !== undefined) {
-        if (typeof dto.category_id !== 'number') {
-          throw new BadRequestException('category_id must be a number');
+      } else if (dto.categoryId !== undefined) {
+        if (typeof dto.categoryId !== 'number') {
+          throw new BadRequestException('categoryId must be a number');
         }
-        category = await this.categoryRepository.findOneBy({ id: dto.category_id });
+        category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
         if (!category) throw new NotFoundException('Category not found');
       }
     }
 
     const start = new Date(dto.startTime);
-    const end = dto.endTime ? new Date(dto.endTime) : null;
+    const end = dto.endTime ? new Date(dto.endTime) : undefined;
 
     if (end && end < start) {
       throw new BadRequestException('End time cannot be before start time');
@@ -95,14 +95,14 @@ export class EventsService {
       event.user = user;
     }
 
-    if ('category_id' in dto) {
-      if (dto.category_id === null) {
+    if ('categoryId' in dto) {
+      if (dto.categoryId === null) {
         event.category = undefined;  // aquí sí null para borrar la relación
-      } else if (dto.category_id !== undefined) {
-        if (typeof dto.category_id !== 'number') {
-          throw new BadRequestException('category_id must be a number');
+      } else if (dto.categoryId !== undefined) {
+        if (typeof dto.categoryId !== 'number') {
+          throw new BadRequestException('categoryId must be a number');
         }
-        const category = await this.categoryRepository.findOneBy({ id: dto.category_id });
+        const category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
         if (!category) throw new NotFoundException('Category not found');
         event.category = category;
       }
@@ -111,7 +111,7 @@ export class EventsService {
     if (dto.title !== undefined) event.title = dto.title;
     if (dto.description !== undefined) event.description = dto.description;
     if (dto.startTime !== undefined) event.startTime = new Date(dto.startTime);
-    if (dto.endTime !== undefined) event.endTime = dto.endTime ? new Date(dto.endTime) : null;
+    if (dto.endTime !== undefined) event.endTime = dto.endTime ? new Date(dto.endTime) : undefined;
 
     return this.eventRepository.save(event);
   }
