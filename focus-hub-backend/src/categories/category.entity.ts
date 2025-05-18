@@ -8,7 +8,7 @@ export class Category {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 100, nullable: false })
+  @Column({ length: 100, nullable: false, unique: true })
   name: string;
 
   // @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })

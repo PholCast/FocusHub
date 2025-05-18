@@ -12,7 +12,7 @@ import { TasksModule } from 'src/tasks/tasks.module';
 
 @Module({
   imports:[
-    TypeOrmModule.forFeature([FocusSessionTask,FocusSession, Technique]),
+    TypeOrmModule.forFeature([FocusSessionTask,FocusSession, Technique,User,Task]),
     UsersModule,
     TasksModule,],
   providers: [ProductivityService],

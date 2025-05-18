@@ -1,4 +1,201 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { IsNull, Repository } from 'typeorm';
+import { Technique } from './entities/technique.entity';
+import { User } from '../users/user.entity';
+import { CreateTechniqueDto } from './dto/create-technique.dto';
+import { UpdateTechniqueDto } from './dto/update-technique.dto';
+import { Task } from '../tasks/task.entity';
+import { FocusSession } from './entities/focus-session.entity';
+import { CreateFocusSessionDto } from './dto/create-focus-session.dto';
+import { UpdateFocusSessionDto } from './dto/update-focus-session.dto';
+
+import { FocusSessionTask } from './entities/focus-session-task.entity';
+import { CreateFocusSessionTaskDto } from './dto/create-focus-session-task.dto';
+import { UpdateFocusSessionTaskDto } from './dto/update-focus-session-task.dto';
 
 @Injectable()
-export class ProductivityService {}
+export class ProductivityService {
+  constructor(
+    @InjectRepository(Technique) private readonly techniqueRepository: Repository<Technique>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(FocusSession) private readonly focusSessionRepository: Repository<FocusSession>,
+    @InjectRepository(FocusSessionTask) private readonly focusSessionTaskRepository: Repository<FocusSessionTask>,
+    @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
+  ) {}
+
+  //techniques
+  async createTechnique(userId: number, createTechniqueDto: CreateTechniqueDto): Promise<Technique> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User with ID ${userId} not found`);
+
+    const name = createTechniqueDto.name.toLowerCase();
+    const existingTechnique = await this.techniqueRepository.findOne({
+      where: { name, user: { id: userId } },
+    });
+    if (existingTechnique) {
+      throw new BadRequestException(`Technique with name '${name}' already exists for this user`);
+    }
+
+    const technique = this.techniqueRepository.create({ ...createTechniqueDto, name, user });
+    return this.techniqueRepository.save(technique);
+  }
+
+  async findAllTechniques(userId: number): Promise<Technique[]> {
+    return this.techniqueRepository.find({ where: { user: { id: userId } }, order: { name: 'ASC' } });
+  }
+
+  async findAllTechniquesForAllUsers(): Promise<Technique[]> {
+    return this.techniqueRepository.find({
+        where: { user: IsNull() },
+        order: { name: 'ASC' },
+    });
+  }
+  async findOneTechnique(id: number, userId: number): Promise<Technique> {
+    const technique = await this.techniqueRepository.findOne({ where: { id, user: { id: userId } } });
+    if (!technique) throw new NotFoundException(`Technique with ID ${id} not found`);
+    return technique;
+  }
+
+  async updateTechnique(id: number, userId: number, updateTechniqueDto: UpdateTechniqueDto): Promise<Technique> {
+    const technique = await this.findOneTechnique(id, userId);
+
+    if (updateTechniqueDto.name) {
+      const newName = updateTechniqueDto.name.toLowerCase();
+      const existingTechnique = await this.techniqueRepository.findOne({
+        where: { name: newName, user: { id: userId } },
+      });
+
+      if (existingTechnique && existingTechnique.id !== id) {
+        throw new BadRequestException(`Technique with name '${newName}' already exists for this user`);
+      }
+
+      updateTechniqueDto.name = newName;
+    }
+
+    Object.assign(technique, updateTechniqueDto);
+    return this.techniqueRepository.save(technique);
+  }
+
+  async removeTechnique(id: number, userId: number): Promise<void> {
+    const technique = await this.findOneTechnique(id, userId);
+    await this.techniqueRepository.remove(technique);
+  }
+
+
+  //focus-sessions
+  async createFocusSession(createFocusSessionDto: CreateFocusSessionDto): Promise<FocusSession> {
+    const { userId, techniqueId, status } = createFocusSessionDto;
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User with ID ${userId} not found`);
+
+    const technique = await this.techniqueRepository.findOne({
+      where: [
+            { id: techniqueId, user: { id: userId } },  // Técnicas del usuario
+            { id: techniqueId, user: IsNull() },           // Técnicas globales
+      ],
+    });
+    if (!technique) throw new NotFoundException(`Technique with ID ${techniqueId} not found for this user`);
+
+    const focusSession = this.focusSessionRepository.create({
+      user,
+      technique,
+      status,
+    });
+
+    return this.focusSessionRepository.save(focusSession);
+  }
+
+  async findAllFocusSessions(userId: number): Promise<FocusSession[]> {
+    return this.focusSessionRepository.find({
+      where: { user: { id: userId } },
+      relations: ['technique', 'focusSessionTasks'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findOneFocusSession(id: number, userId: number): Promise<FocusSession> {
+    const focusSession = await this.focusSessionRepository.findOne({
+      where: { id, user: { id: userId } },
+      relations: ['technique', 'focusSessionTasks'],
+    });
+    if (!focusSession) throw new NotFoundException(`FocusSession with ID ${id} not found`);
+    return focusSession;
+  }
+
+  async updateFocusSession(id: number, userId: number, updateFocusSessionDto: UpdateFocusSessionDto): Promise<FocusSession> {
+    const focusSession = await this.findOneFocusSession(id, userId);
+    Object.assign(focusSession, updateFocusSessionDto);
+    return this.focusSessionRepository.save(focusSession);
+  }
+
+  async removeFocusSession(id: number, userId: number): Promise<void> {
+    const focusSession = await this.findOneFocusSession(id, userId);
+    await this.focusSessionRepository.remove(focusSession);
+
+
+
+  }
+  //focus_session_tasks
+  async createFocusSessionTask(createFocusSessionTaskDto: CreateFocusSessionTaskDto): Promise<FocusSessionTask> {
+    const { focusSessionId, taskId } = createFocusSessionTaskDto;
+
+    // Verificar que la sesión de enfoque exista y traer su usuario
+    const focusSession = await this.focusSessionRepository.findOne({
+      where: { id: focusSessionId },
+      relations: ['user'],
+    });
+    if (!focusSession) {
+      throw new NotFoundException(`Focus session with ID ${focusSessionId} not found`);
+    }
+
+    // Verificar que la tarea exista y pertenezca al mismo usuario que la sesión de enfoque
+    const task = await this.taskRepository.findOne({
+      where: { id: taskId, user: { id: focusSession.user.id } },
+    });
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${taskId} not found for this user`);
+    }
+
+    // Verificar que no se repita la combinación
+    const existingTask = await this.focusSessionTaskRepository.findOne({
+      where: { focusSession: { id: focusSessionId }, task: { id: taskId } },
+    });
+    if (existingTask) {
+      throw new BadRequestException(`Task with ID ${taskId} is already linked to this focus session`);
+    }
+
+    // Crear la relación focus session task con las entidades completas
+    const focusSessionTask = this.focusSessionTaskRepository.create({
+      focusSession,
+      task,
+    });
+
+    return this.focusSessionTaskRepository.save(focusSessionTask);
+  }
+
+  async findAllFocusSessionTasks(): Promise<FocusSessionTask[]> {
+    return this.focusSessionTaskRepository.find({ relations: ['focusSession', 'task'] });
+  }
+
+  async findOneFocusSessionTask(id: number): Promise<FocusSessionTask> {
+    const focusSessionTask = await this.focusSessionTaskRepository.findOne({
+      where: { id },
+      relations: ['focusSession', 'task'],
+    });
+    if (!focusSessionTask) throw new NotFoundException(`Focus session task with ID ${id} not found`);
+    return focusSessionTask;
+  }
+
+  async updateFocusSessionTask(id: number, updateFocusSessionTaskDto: UpdateFocusSessionTaskDto): Promise<FocusSessionTask> {
+    const focusSessionTask = await this.findOneFocusSessionTask(id);
+    Object.assign(focusSessionTask, updateFocusSessionTaskDto);
+    return this.focusSessionTaskRepository.save(focusSessionTask);
+  }
+
+  async removeFocusSessionTask(id: number): Promise<void> {
+    const focusSessionTask = await this.findOneFocusSessionTask(id);
+    await this.focusSessionTaskRepository.remove(focusSessionTask);
+  }
+}

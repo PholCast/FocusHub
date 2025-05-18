@@ -13,7 +13,7 @@ import { RemindersModule } from 'src/reminders/reminders.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Task]), // Importar las entidades
+    TypeOrmModule.forFeature([Task,User,Category]), // Importar las entidades
     UsersModule, // Importar UsersModule
     CategoriesModule,
     forwardRef(() => RemindersModule)

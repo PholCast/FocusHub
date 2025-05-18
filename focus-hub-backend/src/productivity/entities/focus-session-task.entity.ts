@@ -3,7 +3,7 @@ import { FocusSession } from './focus-session.entity';
 import { Task } from '../../tasks/task.entity';
 
 @Entity('focus_session_tasks')
-@Index('focus_session_id_task_id', ['focusSessionId', 'taskId'], { unique: true })
+@Index('focus_session_id_task_id', ['focusSession', 'task'], { unique: true })
 export class FocusSessionTask {
   @PrimaryGeneratedColumn()
   id: number;
@@ -16,9 +16,4 @@ export class FocusSessionTask {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ type: 'int', nullable: false })
-  focusSessionId: number;
-
-  @Column({ type: 'int', nullable: false })
-  taskId: number;
 }
