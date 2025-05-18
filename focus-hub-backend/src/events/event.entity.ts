@@ -19,7 +19,7 @@ export class Event {
   startTime: Date;
 
   @Column({ type: 'datetime', nullable: true, default: null })
-  endTime?: Date;
+  endTime: Date | null;
 
   // @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   // createdAt: Date;
@@ -39,3 +39,5 @@ export class Event {
   @OneToOne(() => EventReminder, (eventReminder) => eventReminder.event, { nullable: true })
   reminder: EventReminder;
 }
+
+
