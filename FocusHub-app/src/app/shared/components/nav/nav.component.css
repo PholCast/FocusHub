@@ -79,6 +79,8 @@
     }
 
     .nav-shortcuts a {
+        width: 60px;
+        font-size: 12px;
         padding: 10px 15px; /* Ajusta el padding para el diseño horizontal */
         text-align: center; /* Centra el texto */
         flex-grow: 1; /* Permite que los enlaces se expandan para llenar el espacio */
