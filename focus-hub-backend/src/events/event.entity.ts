@@ -33,9 +33,11 @@ export class Event {
 
   @ManyToOne(() => Category, (category) => category.events, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'category_id' })
-  category: Category | null;
+  category?: Category;
 
   // Relación uno a uno con EventReminder
   @OneToOne(() => EventReminder, (eventReminder) => eventReminder.event, { nullable: true })
   reminder: EventReminder;
 }
+
+
