@@ -1,0 +1,116 @@
+/* Estilos Base para la Navegación (Aplicados por defecto, pensados para desktop) */
+.nav-shortcuts {
+    /* Colores */
+    background-color: #FFFFFF; /* Color principal: Blanco */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08); /* Sombra sutil para darle profundidad */
+
+    /* Posicionamiento y Dimensiones */
+    position: fixed; /* Fija la navegación en la pantalla */
+    top: 0;
+    left: 0;
+    height: 97vh; /* Ocupa el 100% de la altura de la ventana */
+    width: 200px; /* Ancho fijo para la barra lateral */
+    z-index: 1000; /* Asegura que esté por encima de otros elementos */
+
+    /* Diseño Flexbox para los enlaces */
+    display: flex;
+    flex-direction: column; /* Enlaces en columna (vertical) */
+    padding: 20px 0; /* Espaciado interno vertical */
+    align-items: flex-start; /* Alinea los ítems al inicio (izquierda) */
+    gap: 10px; /* Espacio entre los enlaces */
+}
+
+/* Estilos para los Enlaces de Navegación */
+.nav-shortcuts a {
+    cursor: pointer;
+    color: #2196F3; /* Color secundario: Azul (Material Design Blue 500) */
+    text-decoration: none; /* Sin subrayado */
+    padding: 12px 20px; /* Espaciado interno para cada enlace */
+    width: 100%; /* Los enlaces ocupan todo el ancho disponible */
+    font-size: 1.1em; /* Tamaño de fuente ligeramente más grande */
+    font-weight: 500; /* Peso de fuente medio */
+    box-sizing: border-box; /* Incluye padding en el ancho */
+
+    /* Agregamos transiciones para todos los efectos que se puedan animar */
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Efectos Hover para los Enlaces (Desktop) */
+.nav-shortcuts a:hover {
+    background-color: #e3f2fd; /* Azul muy claro al pasar el ratón */
+    color: #1565C0; /* Azul más oscuro para el texto en hover */
+    transform: translateX(5px); /* **Deslizamiento sutil a la derecha** */
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.1); /* **Sombra suave para un efecto de "elevación"** */
+}
+
+/* Estilo para el enlace activo (conceptual) */
+/* Para que esto funcione, necesitas añadir `routerLinkActive="active"` a tus enlaces en el HTML del nav.
+   Ejemplo: `<a [routerLink]="['/tasks']" routerLinkActive="active"> tareas</a>` */
+.nav-shortcuts a.active {
+    background-color: #2196F3; /* Fondo azul sólido para el activo */
+    color: #ffffff; /* Texto blanco */
+    border-left: 5px solid #1565C0; /* **Una barra azul más oscura a la izquierda** */
+    padding-left: 15px; /* Ajusta el padding para compensar el borde */
+    font-weight: 600; /* Un poco más de peso */
+    transform: translateX(0); /* Asegura que no se mueva si el hover lo hace */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada para el activo */
+}
+
+/* Estilo para el Botón de "Salir" */
+#logoutBtn {
+    margin-top: auto; /* Empuja el botón "Salir" al final de la barra lateral vertical */
+    border-top: 1px solid #eeeeee; /* Línea separadora */
+    padding-top: 20px; /* Espacio encima de la línea */
+}
+
+/* --- Adaptación Responsive para Pantallas Pequeñas (Móviles) --- */
+@media (max-width: 768px) {
+    .nav-shortcuts {
+        flex-direction: row; /* Cambia a horizontal */
+        width: 100%; /* Ocupa todo el ancho */
+        height: auto; /* Altura automática (no 100vh) */
+        padding: 10px 0; /* Menos padding vertical para barra superior */
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); /* Sombra en la parte inferior */
+        top: 0; /* Sigue arriba */
+        left: 0;
+        justify-content: space-around; /* Distribuye los enlaces equitativamente */
+        align-items: center; /* Centra los ítems verticalmente */
+        gap: 0; /* Elimina el espacio entre enlaces para maximizar el uso del ancho */
+    }
+
+    .nav-shortcuts a {
+        width: 60px;
+        font-size: 12px;
+        padding: 10px 15px; /* Ajusta el padding para el diseño horizontal */
+        text-align: center; /* Centra el texto */
+        flex-grow: 1; /* Permite que los enlaces se expandan para llenar el espacio */
+        /* Reseteamos los transforms/shadows específicos de desktop para móvil */
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Efectos Hover para los Enlaces (Móvil) - más sutiles */
+    .nav-shortcuts a:hover {
+        background-color: #e3f2fd; /* Mantenemos un hover sutil */
+        color: #1565C0;
+        transform: none; /* Asegúrate de que no haya deslizamiento en móvil */
+        box-shadow: none; /* Asegúrate de que no haya sombra en móvil */
+    }
+
+    /* Estilo para el enlace activo (Móvil) */
+    .nav-shortcuts a.active {
+        background-color: #2196F3;
+        color: #ffffff;
+        border-left: none; /* No borde a la izquierda en horizontal */
+        border-bottom: 3px solid #1565C0; /* **Borde abajo para activo en horizontal** */
+        padding-left: 15px; /* Restablecer padding */
+        transform: none;
+        box-shadow: none;
+    }
+
+    #logoutBtn {
+        margin-top: 0;
+        border-top: none;
+        padding-top: 10px;
+    }
+}

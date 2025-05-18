@@ -1,17 +1,62 @@
 :root {
-     --primary-bg: #FFFFFF;
-    --secondary-bg: #F0F2F5; 
-    --accent-color: #4682B4; 
-    --text-color: #333333; 
+    --primary-bg: #FFFFFF;
+    --secondary-bg: #F0F2F5;
+    --accent-color: #2196F3; /* Changed to the blue from the navigation */
+    --text-color: #333333;
     --text-secondary: #6c757d;
     --success-color: #28a745;
-    --danger-color: #dc3545; 
-    --shadow-color: rgba(0, 0, 0, 0.1); 
+    --danger-color: #dc3545;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-light: rgba(0, 0, 0, 0.05); /* Added a lighter shadow variable */
 }
 
-* {
+body {
+    font-family: 'Segoe UI', sans-serif;
     margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
+    /* Adjust padding/margin to account for the fixed navigation */
+    padding: 20px; /* Keep some padding around the content */
+    margin-left: 200px; /* Space for the fixed left nav (desktop) */
+    background-color: var(--secondary-bg); /* Use secondary background color */
+    color: var(--text-color); /* Use main text color */
+}
+
+/* Adjustment for the main content to not overlap with the nav */
+/* If your main content is wrapped in a div, apply margin/padding there instead of body */
+/* Example:
+.main-content {
+    margin-left: 200px;
+    padding: 20px;
+}
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0;
+        margin-top: 60px; // Adjust based on horizontal nav height
+    }
+}
+*/
+
+
+/* Adjustment for screens smaller than 768px */
+@media (max-width: 768px) {
+    body {
+        margin-left: 0; /* Remove left margin on mobile */
+        /* Add top margin to prevent content from being hidden by the horizontal nav */
+        /* You might need to adjust the 60px value based on the actual height of your mobile nav */
+        margin-top: 60px;
+        padding: 10px; /* Reduce padding on mobile */
+    }
+}
+
+/* Basic styles for elements that might not be in components */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color);
+}
+
+a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
 }
