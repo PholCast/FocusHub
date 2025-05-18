@@ -4,12 +4,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/user.entity'; // Asumo que tienes una entidad User aquí
 import * as bcrypt from 'bcrypt'; // Asegúrate de tener bcrypt instalado (npm install bcryptjs o bcrypt)
-
+import { MyLogger } from '../logger.service';
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private usersRepository: Repository<User>,private readonly logger: MyLogger
     // Si vas a buscar un AmbientSound por defecto al crear el usuario,
     // deberías inyectar el repositorio de AmbientSound aquí:
     // @InjectRepository(AmbientSound)
@@ -51,7 +51,7 @@ export class AuthService {
     // y la columna `sound_preference` en la BASE DE DATOS es NOT NULL,
     // aún podrías tener un error de base de datos si no tiene un DEFAULT.
     // Si ese es el caso, deberás implementar la lógica para asignar un valor por defecto (como en el comentario anterior).
-
+    this.logger.log(`Creating user...${newUser.email} - ${newUser.name}`);
     return this.usersRepository.save(newUser);
   }
 
@@ -77,6 +77,7 @@ export class AuthService {
     //   access_token: this.jwtService.sign(payload),
     //   user: { id: user.id, email: user.email, name: user.name } // Devuelve la info del usuario que necesites
     // };
+    this.logger.log(`User logged in...${user.email} - ${user.name}`);
     return { message: 'Login successful', user: { email: user.email, name: user.name } }; // Placeholder
   }
 }

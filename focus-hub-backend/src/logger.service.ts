@@ -20,6 +20,32 @@ class TCPTransport extends Transport {
   }
 }
 
+// export class MyLogger implements LoggerService {
+//   private logger = winston.createLogger({
+//     level: 'info',
+//     transports: [new TCPTransport({})],
+//   });
+
+//   log(message: string) {
+//     this.logger.info({ message });
+//   }
+
+//   error(message: string, trace?: string) {
+//     this.logger.error({ message, trace });
+//   }
+
+//   warn(message: string) {
+//     this.logger.warn({ message });
+//   }
+
+//   debug(message: string) {
+//     this.logger.debug({ message });
+//   }
+
+//   verbose(message: string) {
+//     this.logger.verbose({ message });
+//   }
+// }
 export class MyLogger implements LoggerService {
   private logger = winston.createLogger({
     level: 'info',
@@ -27,22 +53,22 @@ export class MyLogger implements LoggerService {
   });
 
   log(message: string) {
-    this.logger.info({ message });
+    this.logger.info({ level: 'info', message });
   }
 
   error(message: string, trace?: string) {
-    this.logger.error({ message, trace });
+    this.logger.error({ level: 'error', message, trace });
   }
 
   warn(message: string) {
-    this.logger.warn({ message });
+    this.logger.warn({ level: 'warn', message });
   }
 
   debug(message: string) {
-    this.logger.debug({ message });
+    this.logger.debug({ level: 'debug', message });
   }
 
   verbose(message: string) {
-    this.logger.verbose({ message });
+    this.logger.verbose({ level: 'verbose', message });
   }
 }
