@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './event.entity';
@@ -20,14 +20,29 @@ export class EventsService {
     private readonly categoryRepository: Repository<Category>,
   ) {}
 
-  async create(dto: CreateEventDto): Promise<Event> {
-    const user = await this.userRepository.findOneBy({ id: dto.userId });
+  private mapPriority(priority: string): 'Low' | 'Medium' | 'High' {
+    const mapping: Record<string, 'Low' | 'Medium' | 'High'> = {
+      'Baja': 'Low',
+      'Media': 'Medium',
+      'Alta': 'High'
+    };
+
+    const mapped = mapping[priority];
+    if (!mapped) {
+      throw new BadRequestException(`Prioridad inválida: ${priority}`);
+    }
+
+    return mapped;
+  }
+
+  async create(dto: CreateEventDto, userId: number): Promise<Event> {
+    const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) throw new NotFoundException('User not found');
 
     let category: Category | null | undefined = undefined;
     if ('categoryId' in dto) {
       if (dto.categoryId === null) {
-        category = null;  // explícito null para borrar la categoría
+        category = null;
       } else if (dto.categoryId !== undefined) {
         if (typeof dto.categoryId !== 'number') {
           throw new BadRequestException('categoryId must be a number');
@@ -68,8 +83,6 @@ export class EventsService {
 
     if (!event) throw new NotFoundException('Event not found');
 
-    // No necesitas normalizar aquí, TypeORM maneja null en category bien.
-
     return event;
   }
 
@@ -82,22 +95,24 @@ export class EventsService {
     return events;
   }
 
-  async update(id: number, dto: UpdateEventDto): Promise<Event> {
+  async update(id: number, dto: UpdateEventDto, userId: number): Promise<Event> {
+    console.log('si llega al update del backend');
     const event = await this.eventRepository.findOne({
       where: { id },
       relations: ['user', 'category'],
     });
     if (!event) throw new NotFoundException('Event not found');
 
-    if (dto.userId !== undefined) {
-      const user = await this.userRepository.findOneBy({ id: dto.userId });
-      if (!user) throw new NotFoundException('User not found');
-      event.user = user;
-    }
+    console.log('userId del token:', userId);
+    console.log('userId del evento:', event.user?.id);
+
+    //if (Number(event.user.id) !== Number(userId)) {
+    //  throw new ForbiddenException('You do not have permission to update this event');
+    //}
 
     if ('categoryId' in dto) {
       if (dto.categoryId === null) {
-        event.category = undefined;  // aquí sí null para borrar la relación
+        event.category = undefined;
       } else if (dto.categoryId !== undefined) {
         if (typeof dto.categoryId !== 'number') {
           throw new BadRequestException('categoryId must be a number');

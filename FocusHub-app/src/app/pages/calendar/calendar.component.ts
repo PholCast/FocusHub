@@ -182,14 +182,15 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
     const days: Date[] = [];
 
     // Add days from the previous month to fill the first week row
-    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    // Add days from the previous month to fill the first week row
+    const prevMonthLastDay = new Date(year, month, 0).getDate(); // This correctly gets the last day of the PREVIOUS month
     for (let i = startingDay - 1; i >= 0; i--) {
-      const date = new Date(year, month, prevMonthLastDay - i);
+      // Corrected line: Use 'month - 1' to explicitly target the previous month
+      const date = new Date(year, month - 1, prevMonthLastDay - i);
       date.setHours(0, 0, 0, 0); // Ensure time is start of day for comparison
       days.push(date);
     }
-
-    // Add days of the current month
+        // Add days of the current month
     for (let i = 0; i < daysInMonth; i++) {
       const date = new Date(year, month, i + 1);
       date.setHours(0, 0, 0, 0); // Ensure time is start of day for comparison
@@ -675,7 +676,7 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
       const taskToSave: Task = {
         id: 0, // ID will be assigned by the TaskService
         title: this.newTask.title,
-        status: false, // Tasks created here are initially not completed
+        status: 'pending', // Tasks created here are initially not completed
         createdAt: new Date().toISOString(), // Set creation date
         dueDate: this.newTask.dueDate,
         user_id: null // Use the selected date as the due date

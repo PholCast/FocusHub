@@ -4,7 +4,7 @@ export interface Task {
     description?: string;
     dueDate?: string;
     priority?: 'Baja' | 'Media' | 'Alta';
-    status: boolean;
+    status: 'pending' | 'in_progress' | 'completed' | 'overdue';
     createdAt: string;
     user_id: number | null;
     category?: string;

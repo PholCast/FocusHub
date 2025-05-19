@@ -52,7 +52,7 @@ export class TasksService {
     task.title = createTaskDto.title;
     task.description = createTaskDto.description;
     task.dueDate = createTaskDto.dueDate;
-    task.priority = createTaskDto.priority || 'medium';
+    task.priority = this.mapPriority(createTaskDto.priority || 'Medium');
     task.status = createTaskDto.status || 'pending';
     task.user = user;
 
@@ -79,7 +79,7 @@ export class TasksService {
     if (updateTaskDto.title !== undefined) task.title = updateTaskDto.title;
     if (updateTaskDto.description !== undefined) task.description = updateTaskDto.description;
     if (updateTaskDto.dueDate !== undefined) task.dueDate = updateTaskDto.dueDate;
-    if (updateTaskDto.priority !== undefined) task.priority = updateTaskDto.priority;
+    if (updateTaskDto.priority !== undefined) task.priority = this.mapPriority(updateTaskDto.priority);
     if (updateTaskDto.status !== undefined) task.status = updateTaskDto.status;
 
     // Update category if provided
@@ -123,17 +123,29 @@ export class TasksService {
     });
   }
 
-  async findByPriority(userId: number, priority: 'low' | 'medium' | 'high'): Promise<Task[]> {
+  async findByPriority(userId: number, priority: 'Alta' | 'Media' | 'Baja'): Promise<Task[]> {
+    const mappedPriority = this.mapPriority(priority); // convierte 'Alta' → 'High', etc.
     return this.taskRepository.find({
-      where: { user: { id: userId }, priority },
+      where: { user: { id: userId }, priority: mappedPriority },
       relations: ['category'],
       order: { createdAt: 'DESC' },
     });
   }
-  
+
+
   async updateTaskStatus(id: number, userId: number, status: 'pending' | 'in_progress' | 'completed' | 'overdue'): Promise<Task> {
     const task = await this.findOne(id, userId);
     task.status = status;
     return this.taskRepository.save(task);
+  }
+
+  private mapPriority(priority: string): 'Low' | 'Medium' | 'High' {
+    const mapping: Record<string, 'Low' | 'Medium' | 'High'> = {
+      'Baja': 'Low',
+      'Media': 'Medium',
+      'Alta': 'High'
+    };
+
+    return mapping[priority] ?? 'Medium'; // default a 'Medium' si no hay match
   }
 }

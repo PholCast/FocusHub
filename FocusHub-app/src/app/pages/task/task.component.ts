@@ -8,7 +8,7 @@ import { NavComponent } from '../../shared/components/nav/nav.component';
 @Component({
   selector: 'app-task',
   standalone: true,
-  imports: [NavComponent,CommonModule, FormsModule],
+  imports: [NavComponent, CommonModule, FormsModule],
   templateUrl: './task.component.html',
   styleUrls: ['./task.component.css']
 })
@@ -31,23 +31,32 @@ export class TaskComponent implements OnInit {
   }
 
   loadTasks(): void {
-    this.tasks = this.taskService.getTasks();
+    const loadedTasks = this.taskService.getTasks();
+    // Aseguramos que los status sean válidos
+    this.tasks = loadedTasks.map(task => ({
+      ...task,
+      status: this.isValidStatus(task.status) ? task.status : 'pending'
+    }));
+  }
+
+  private isValidStatus(status: string): status is Task['status'] {
+    return ['pending', 'in_progress', 'completed', 'overdue'].includes(status);
   }
 
   get pendingTasks(): Task[] {
     return this.tasks.filter(task => 
-      !task.status && 
+      (task.status === 'pending' || task.status === 'in_progress') && 
       (!task.dueDate || new Date(task.dueDate) >= new Date())
     );
   }
 
   get completedTasks(): Task[] {
-    return this.tasks.filter(task => task.status);
+    return this.tasks.filter(task => task.status === 'completed');
   }
 
   get expiredTasks(): Task[] {
     return this.tasks.filter(task => 
-      !task.status && 
+      (task.status === 'pending' || task.status === 'in_progress' || task.status === 'overdue') && 
       task.dueDate && 
       new Date(task.dueDate) < new Date()
     );
@@ -58,7 +67,7 @@ export class TaskComponent implements OnInit {
       const newTask: Task = {
         id: 0,
         title: title.trim(),
-        status: false,
+        status: 'pending',
         createdAt: new Date().toISOString(),
         user_id: null
       };
@@ -69,13 +78,13 @@ export class TaskComponent implements OnInit {
 
   toggleComplete(id: number): void {
     this.taskService.toggleComplete(id);
-    
-
     this.tasks = this.tasks.map(task => {
       if (task.id === id) {
-        const updatedTask = { ...task, status: !task.status };
+        const updatedTask: Task = { 
+          ...task, 
+          status: task.status === 'completed' ? 'pending' : 'completed'
+        };
         
-
         if (this.selectedTask && this.selectedTask.id === id) {
           this.selectedTask = { ...updatedTask };
         }
@@ -101,7 +110,12 @@ export class TaskComponent implements OnInit {
   }
 
   saveTaskDetails(): void {
-    if (this.selectedTask && !this.selectedTask.status) {
+    if (this.selectedTask && this.selectedTask.status !== 'completed') {
+      // Validamos el status antes de guardar
+      if (!this.isValidStatus(this.selectedTask.status)) {
+        this.selectedTask.status = 'pending';
+      }
+      
       this.taskService.updateTask(this.selectedTask);
       this.tasks = this.tasks.map(task => 
         task.id === this.selectedTask!.id ? this.selectedTask! : task

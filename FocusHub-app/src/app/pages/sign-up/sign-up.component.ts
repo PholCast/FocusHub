@@ -7,8 +7,8 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-sign-in',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './sign-in.component.html',
-  styleUrl: './sign-in.component.css'
+  templateUrl: './sign-up.component.html',
+  styleUrl: './sign-up.component.css'
 })
 export class SignInComponent {
   private fb = inject(FormBuilder);
@@ -47,38 +47,18 @@ export class SignInComponent {
       return;
     }
 
-    const success = this.authService.signUp({ name, email, password });
-    
-    if (success) {
-      await Swal.fire({
-        title: "Éxito",
-        text: "Registro exitoso! Redirigiendo...",
-        icon: "success",
-        color: "#716add",
-        backdrop: `rgba(0,0,123,0.4) left top no-repeat`
-      });
-      this.router.navigate(['/log-in']);
-    } else {
-      // const users = this.authService.users;
-      // if (users.some(user => user.email === email)) {
-      //   await Swal.fire({
-      //     title: "Error",
-      //     text: "Este correo electrónico ya está registrado",
-      //     icon: "error",
-      //     color: "#716add",
-      //     backdrop: `rgba(0,0,123,0.4) left top no-repeat`
-      //   });
-      // } 
-      const success = await this.authService.signUp({ name, email, password });
-      if (!success) {
+    this.authService.signUp({ name, email, password }).subscribe({
+      next: async () => {
         await Swal.fire({
-          title: "Error",
-          text: "Error en el registro. Por favor intente nuevamente.",
-          icon: "error",
+          title: "Éxito",
+          text: "Registro exitoso! Redirigiendo...",
+          icon: "success",
           color: "#716add",
           backdrop: `rgba(0,0,123,0.4) left top no-repeat`
         });
-      }else {
+        this.router.navigate(['/log-in']);
+      },
+      error: async () => {
         await Swal.fire({
           title: "Error",
           text: "Error en el registro. Por favor intente nuevamente.",
@@ -87,6 +67,6 @@ export class SignInComponent {
           backdrop: `rgba(0,0,123,0.4) left top no-repeat`
         });
       }
-    }
+    });
   }
 }

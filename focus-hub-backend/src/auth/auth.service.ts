@@ -5,11 +5,16 @@ import { Repository } from 'typeorm';
 import { User } from '../users/user.entity'; // Asumo que tienes una entidad User aquí
 import * as bcrypt from 'bcrypt'; // Asegúrate de tener bcrypt instalado (npm install bcryptjs o bcrypt)
 import { MyLogger } from '../logger.service';
+import { JwtService } from '@nestjs/jwt';
+
+
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,private readonly logger: MyLogger
+    private usersRepository: Repository<User>,
+    private readonly logger: MyLogger,
+    private readonly jwtService: JwtService
     // Si vas a buscar un AmbientSound por defecto al crear el usuario,
     // deberías inyectar el repositorio de AmbientSound aquí:
     // @InjectRepository(AmbientSound)
@@ -70,14 +75,20 @@ export class AuthService {
       throw new Error('Invalid credentials'); // Este error es capturado por el controller y se convierte en 401
     }
 
-    // Si todo es correcto, puedes generar un token JWT aquí
-    // Por ejemplo:
-    // const payload = { email: user.email, sub: user.id };
+    const payload = { email: user.email, sub: user.id };
     // return {
     //   access_token: this.jwtService.sign(payload),
     //   user: { id: user.id, email: user.email, name: user.name } // Devuelve la info del usuario que necesites
     // };
     this.logger.log(`User logged in...${user.email} - ${user.name}`);
-    return { message: 'Login successful', user: { email: user.email, name: user.name } }; // Placeholder
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        lastname: user.lastname,// Placeholder
+        }
+    }
   }
 }

@@ -21,7 +21,7 @@ export class Task {
   dueDate?: Date;
 
   @Column({ type: 'enum', enum: ['low', 'medium', 'high'], default: 'medium' })
-  priority: 'low' | 'medium' | 'high';
+  priority?:'Low' | 'Medium' | 'High';
 
   @Column({ type: 'enum', enum: ['pending', 'in_progress', 'completed', 'overdue'], default: 'pending' })
   status: 'pending' | 'in_progress' | 'completed' | 'overdue';

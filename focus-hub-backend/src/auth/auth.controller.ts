@@ -1,5 +1,5 @@
 // src/auth/auth.controller.ts
-import { Body, Controller, Post, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Post, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -17,6 +17,13 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() body: { email: string; password: string; name: string; lastname?: string }) {
-    return this.authService.register(body);
+    try {
+      return await this.authService.register(body);
+    } catch (error) {
+      if (error.message === 'Email already registered') {
+        throw new ConflictException('Este correo electrónico ya está registrado');
+      }
+      throw error; // Otros errores
+    }
   }
 }

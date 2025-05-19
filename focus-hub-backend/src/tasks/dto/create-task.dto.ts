@@ -37,9 +37,9 @@ export class CreateTaskDto {
     example: 'medium',
     default: 'medium',
   })
-  @IsEnum(['low', 'medium', 'high'])
+  @IsEnum(['Alta', 'Media', 'Baja'])
   @IsOptional()
-  priority?: 'low' | 'medium' | 'high';
+  priority?:'Low' | 'Medium' | 'High';
 
   @ApiProperty({
     description: 'Current status of the task',

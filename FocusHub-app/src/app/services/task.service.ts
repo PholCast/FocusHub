@@ -1,66 +1,88 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Task } from '../shared/interfaces/task.interface';
+import { BehaviorSubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TaskService {
-  constructor() { }
+  private apiUrl = 'http://localhost:3000/tasks';
+  private _tasks$ = new BehaviorSubject<Task[]>([]);
+  public tasks$ = this._tasks$.asObservable();
 
-  getTasks(): Task[] {
-    const tasks = localStorage.getItem('tasks');
-    return tasks ? JSON.parse(tasks) : [];
+  constructor(private http: HttpClient) {
+    this.loadTasks();
   }
 
-  addTask(task: Task): void {
-    const tasks = this.getTasks();
-    task.id = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-    task.createdAt = new Date().toISOString();
-    tasks.push(task);
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }
-
-  toggleComplete(id: number): void {
-    const tasks = this.getTasks();
-    const updatedTasks = tasks.map(task => {
-      if (task.id === id) {
-        return { ...task, status: !task.status };
-      }
-      return task;
+  /** Carga las tareas del backend */
+  private loadTasks(): void {
+    this.http.get<Task[]>(this.apiUrl).subscribe({
+      next: tasks => {
+        tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        this._tasks$.next(tasks);
+      },
+      error: err => console.error('Error cargando tareas', err)
     });
-    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
   }
 
+  /** Retorna snapshot inmediato (no observable) */
+  getTasks(): Task[] {
+    return this._tasks$.getValue();
+  }
+
+  /** Crea una nueva tarea */
+  addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>): void {
+    this.http.post<Task>(this.apiUrl, task).pipe(
+      tap(() => this.loadTasks())
+    ).subscribe();
+  }
+
+  /** Actualiza una tarea completa */
   updateTask(updatedTask: Task): void {
-    const tasks = this.getTasks();
-    const updatedTasks = tasks.map(task => 
-      task.id === updatedTask.id ? updatedTask : task
-    );
-    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    this.http.patch<Task>(`${this.apiUrl}/${updatedTask.id}`, updatedTask).pipe(
+      tap(() => this.loadTasks())
+    ).subscribe();
   }
 
+  /** Marca una tarea como completada o pendiente */
+  toggleComplete(id: number): void {
+    const task = this.getTasks().find(t => t.id === id);
+    if (!task) return;
+
+    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+    this.http.patch(`${this.apiUrl}/${id}/status`, { status: newStatus }).pipe(
+      tap(() => this.loadTasks())
+    ).subscribe();
+  }
+
+  /** Elimina una tarea */
   deleteTask(id: number): void {
-    const tasks = this.getTasks();
-    const updatedTasks = tasks.filter(task => task.id !== id);
-    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    this.http.delete(`${this.apiUrl}/${id}`).pipe(
+      tap(() => this.loadTasks())
+    ).subscribe();
   }
 
+  /** Duplica una tarea */
   duplicateTask(id: number): void {
-    const tasks = this.getTasks();
-    const taskToDuplicate = tasks.find(t => t.id === id);
-    if (taskToDuplicate) {
-      const newTask = {
-        ...taskToDuplicate,
-        id: Math.max(...tasks.map(t => t.id)) + 1,
-        status: false,
-        createdAt: new Date().toISOString(),
-        user_id: null
-      };
-      tasks.push(newTask);
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-    }
+    const original = this.getTasks().find(t => t.id === id);
+    if (!original) return;
+
+    const duplicated = {
+      ...original,
+      title: original.title + ' (Copia)',
+      status: 'pending',
+      dueDate: original.dueDate
+    };
+
+    delete (duplicated as any).id;
+    delete (duplicated as any).createdAt;
+
+    this.addTask(duplicated);
   }
 
+  /** Estas funciones siguen accediendo localmente, pero puedes adaptarlas más adelante */
   getCategories(): string[] {
     const categories = localStorage.getItem('categories');
     return categories ? JSON.parse(categories) : ['Personal', 'Trabajo', 'Estudio'];
@@ -86,4 +108,18 @@ export class TaskService {
       localStorage.setItem('projects', JSON.stringify(projects));
     }
   }
+
+  /** Opcional: marcar tareas vencidas */
+  checkOverdueTasks(): void {
+    const updated: Task[] = this.getTasks().map(task => {
+      if ((task.status === 'pending' || task.status === 'in_progress') &&
+          task.dueDate && new Date(task.dueDate) < new Date()) {
+        return { ...task, status: 'overdue' as const }; // <- aquí el truco
+      }
+      return task;
+    });
+
+    this._tasks$.next(updated);
+  }
+
 }

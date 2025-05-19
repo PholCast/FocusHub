@@ -1,78 +1,72 @@
 import { Injectable } from '@angular/core';
 import { CalendarEvent } from '../shared/interfaces/calendar-event.interface';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventService {
+  private apiUrl = 'http://localhost:3000/events';
   private _eventsSubject = new BehaviorSubject<CalendarEvent[]>([]);
-  events$: Observable<CalendarEvent[]> = this._eventsSubject.asObservable();
+  public events$ = this._eventsSubject.asObservable();
 
-  constructor() {
-    this.loadEventsFromStorage();
+  constructor(private http: HttpClient) {
+    this.loadEventsFromBackend();
   }
 
-  private loadEventsFromStorage(): void {
-    const events = localStorage.getItem('calendarEvents');
-    const loadedEvents: CalendarEvent[] = events ? JSON.parse(events) : [];
-    loadedEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    this._eventsSubject.next(loadedEvents);
+  /** Carga eventos desde el backend y actualiza el observable */
+  private loadEventsFromBackend(): void {
+    this.http.get<CalendarEvent[]>(this.apiUrl)
+      .subscribe(events => {
+        events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+        this._eventsSubject.next(events);
+      });
   }
 
-  private saveEventsToStorage(events: CalendarEvent[]): void {
-    localStorage.setItem('calendarEvents', JSON.stringify(events));
-  }
-
-  // En tu event.service.ts
-  addEvent(event: Omit<CalendarEvent, 'id'>): void {
-    const currentEvents = this._eventsSubject.value;
-    const newEvent: CalendarEvent = {
-      ...event,
-      id: currentEvents.length > 0 ? Math.max(...currentEvents.map(e => e.id)) + 1 : 1,
-      description: event.description || undefined,
-      createdAt: event.createdAt || new Date().toISOString(),
-      user_id: null,
-      category_id: null,
-      // Asegurar que las fechas se guarden como strings ISO sin conversión UTC
-      startTime: this.formatDateString(event.startTime),
-      endTime: this.formatDateString(event.endTime)
+  /** Mapea el evento al formato esperado por el backend (sin userId) */
+  private toCreateEventDto(event: Omit<CalendarEvent, 'id' | 'createdAt'>): any {
+    return {
+      title: event.title,
+      description: event.description,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      categoryId: event.category_id,
     };
-
-    const updatedEvents = [...currentEvents, newEvent];
-    updatedEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-
-    this.saveEventsToStorage(updatedEvents);
-    this._eventsSubject.next(updatedEvents);
   }
 
-  // Nueva función auxiliar para formatear fechas correctamente
-  private formatDateString(dateString: string): string {
-    if (!dateString) return '';
-
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString; // Si no es una fecha válida, devolver original
-
-    // Formatear manualmente para evitar problemas de zona horaria
-    const pad = (num: number) => num.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+  /** Mapea el evento al formato esperado por el backend para actualizaciones (sin userId) */
+  private toUpdateEventDto(event: CalendarEvent): any {
+    return {
+      title: event.title,
+      description: event.description,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      categoryId: event.category_id,
+    };
   }
 
-  updateEvent(updatedEvent: CalendarEvent): void {
-    const currentEvents = this._eventsSubject.value;
-    const updatedEvents = currentEvents.map(event =>
-      event.id === updatedEvent.id ? updatedEvent : event
-    );
-
-    updatedEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    this.saveEventsToStorage(updatedEvents);
-    this._eventsSubject.next(updatedEvents);
+  /** Crea un nuevo evento en el backend */
+  addEvent(event: Omit<CalendarEvent, 'id'>): void {
+    const dto = this.toCreateEventDto(event);
+    this.http.post<CalendarEvent>(this.apiUrl, dto)
+      .pipe(tap(() => this.loadEventsFromBackend()))
+      .subscribe();
   }
 
+  /** Actualiza un evento existente en el backend */
+  updateEvent(event: CalendarEvent): void {
+    const dto = this.toUpdateEventDto(event);
+    this.http.put<CalendarEvent>(`${this.apiUrl}/${event.id}`, dto)
+      .pipe(tap(() => this.loadEventsFromBackend()))
+      .subscribe();
+  }
+
+  /** Elimina un evento del backend */
   deleteEvent(id: number): void {
-    const currentEvents = this._eventsSubject.value;
-    const updatedEvents = currentEvents.filter(event => event.id !== id);
-    this.saveEventsToStorage(updatedEvents);
-    this._eventsSubject.next(updatedEvents);
+    this.http.delete<void>(`${this.apiUrl}/${id}`)
+      .pipe(tap(() => this.loadEventsFromBackend()))
+      .subscribe();
   }
 }

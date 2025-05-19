@@ -2,6 +2,7 @@
 import { Controller, Get, Post, Body, Param, Put, Delete,UseGuards, Request  } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthGuard } from '@nestjs/passport';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Controller('users')  // Ruta base para este controlador
 export class UsersController {
@@ -15,9 +16,14 @@ export class UsersController {
   }
   // Ruta para crear un nuevo usuario
   @Post()
-  createUser(
-    @Body() createUserDto: { email: string; password: string; name: string; lastname?: string }
-  ) {
+  createUser(@Body() createUserDto: CreateUserDto) {
+    // Asignar valores por defecto si no vienen
+    if (!createUserDto.themePreference) {
+      createUserDto.themePreference = 'light';
+    }
+    if (createUserDto.soundEnabled === undefined) {
+      createUserDto.soundEnabled = true;
+    }
     return this.usersService.createUser(createUserDto);
   }
 
