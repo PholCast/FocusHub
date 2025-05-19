@@ -675,7 +675,7 @@ export class CalendarComponent implements OnInit, OnDestroy { // Implement OnDes
       const taskToSave: Task = {
         id: 0, // ID will be assigned by the TaskService
         title: this.newTask.title,
-        status: false, // Tasks created here are initially not completed
+        status: 'pending', // Tasks created here are initially not completed
         createdAt: new Date().toISOString(), // Set creation date
         dueDate: this.newTask.dueDate,
         user_id: null // Use the selected date as the due date

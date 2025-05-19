@@ -5,18 +5,35 @@ import { Task } from '../shared/interfaces/task.interface';
   providedIn: 'root'
 })
 export class TaskService {
-  constructor() { }
+  constructor() { 
+    this.migrateTasks();
+  }
+
+  private migrateTasks(): void {
+    const tasks = this.getTasks();
+    if (tasks.length > 0 && typeof tasks[0].status === 'boolean') {
+      const migratedTasks = tasks.map(task => ({
+        ...task,
+        status: task.status ? 'completed' : 'pending' as const // Usamos 'as const' para asegurar el tipo literal
+      }));
+      localStorage.setItem('tasks', JSON.stringify(migratedTasks));
+    }
+  }
 
   getTasks(): Task[] {
     const tasks = localStorage.getItem('tasks');
     return tasks ? JSON.parse(tasks) : [];
   }
 
-  addTask(task: Task): void {
+  addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>): void {
     const tasks = this.getTasks();
-    task.id = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-    task.createdAt = new Date().toISOString();
-    tasks.push(task);
+    const newTask: Task = {
+      ...task,
+      id: tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1,
+      createdAt: new Date().toISOString(),
+      status: 'pending' as const // Estado inicial como tipo literal
+    };
+    tasks.push(newTask);
     localStorage.setItem('tasks', JSON.stringify(tasks));
   }
 
@@ -24,7 +41,10 @@ export class TaskService {
     const tasks = this.getTasks();
     const updatedTasks = tasks.map(task => {
       if (task.id === id) {
-        return { ...task, status: !task.status };
+        return { 
+          ...task, 
+          status: task.status === 'completed' ? 'pending' as const : 'completed' as const
+        };
       }
       return task;
     });
@@ -49,10 +69,10 @@ export class TaskService {
     const tasks = this.getTasks();
     const taskToDuplicate = tasks.find(t => t.id === id);
     if (taskToDuplicate) {
-      const newTask = {
+      const newTask: Task = {
         ...taskToDuplicate,
         id: Math.max(...tasks.map(t => t.id)) + 1,
-        status: false,
+        status: 'pending' as const,
         createdAt: new Date().toISOString(),
         user_id: null
       };
@@ -60,6 +80,7 @@ export class TaskService {
       localStorage.setItem('tasks', JSON.stringify(tasks));
     }
   }
+
 
   getCategories(): string[] {
     const categories = localStorage.getItem('categories');
@@ -85,5 +106,18 @@ export class TaskService {
       projects.push(project);
       localStorage.setItem('projects', JSON.stringify(projects));
     }
+  }
+
+  // Método adicional para manejar el estado overdue si es necesario
+  checkOverdueTasks(): void {
+    const tasks = this.getTasks();
+    const updatedTasks = tasks.map(task => {
+      if ((task.status === 'pending' || task.status === 'in_progress') && 
+          task.dueDate && new Date(task.dueDate) < new Date()) {
+        return { ...task, status: 'overdue' };
+      }
+      return task;
+    });
+    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
   }
 }
