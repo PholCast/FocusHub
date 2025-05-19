@@ -1,128 +1,70 @@
-// import { LoggerService } from '@nestjs/common';
-// import * as winston from 'winston';
-// import * as Transport from 'winston-transport';
-// import * as net from 'net';
-
-// class TCPTransport extends Transport {
-//   private client: net.Socket;
-
-//   constructor(opts: any) {
-//     super(opts);
-//     this.client = net.connect({ port: 5000 }, () => {
-//       console.log('🟢 Conectado a Logstash');
-//     });
-//   }
-
-//   log(info: any, callback: () => void) {
-//     setImmediate(() => this.emit('logged', info));
-//     this.client.write(JSON.stringify(info) + '\n');
-//     callback();
-//   }
-// }
-
-// // export class MyLogger implements LoggerService {
-// //   private logger = winston.createLogger({
-// //     level: 'info',
-// //     transports: [new TCPTransport({})],
-// //   });
-
-// //   log(message: string) {
-// //     this.logger.info({ message });
-// //   }
-
-// //   error(message: string, trace?: string) {
-// //     this.logger.error({ message, trace });
-// //   }
-
-// //   warn(message: string) {
-// //     this.logger.warn({ message });
-// //   }
-
-// //   debug(message: string) {
-// //     this.logger.debug({ message });
-// //   }
-
-// //   verbose(message: string) {
-// //     this.logger.verbose({ message });
-// //   }
-// // }
-// export class MyLogger implements LoggerService {
-//   private logger = winston.createLogger({
-//     level: 'info',
-//     transports: [new TCPTransport({})],
-//   });
-
-//   log(message: string) {
-//     this.logger.info({ level: 'info', message });
-//   }
-
-//   error(message: string, trace?: string) {
-//     this.logger.error({ level: 'error', message, trace });
-//   }
-
-//   warn(message: string) {
-//     this.logger.warn({ level: 'warn', message });
-//   }
-
-//   debug(message: string) {
-//     this.logger.debug({ level: 'debug', message });
-//   }
-
-//   verbose(message: string) {
-//     this.logger.verbose({ level: 'verbose', message });
-//   }
-// }
-
-
 
 // focus-hub-backend/src/logger.service.ts
-import { LoggerService, Injectable } from '@nestjs/common'; // Asegúrate de importar Injectable
-import { ConfigService } from '@nestjs/config'; // <-- Importa ConfigService
+import { LoggerService, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as winston from 'winston';
 import * as Transport from 'winston-transport';
 import * as net from 'net';
 
-// 1. Modifica TCPTransport para aceptar host y port
 class TCPTransport extends Transport {
-  private client: net.Socket;
+  private client: net.Socket | null = null;
   private logstashHost: string;
   private logstashPort: number;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 10;
+  private reconnectDelay = 2000; // 2 segundos entre intentos
 
   constructor(opts: any) {
     super(opts);
-    this.logstashHost = opts.host || 'localhost'; // Usa el host pasado, o localhost por defecto
-    this.logstashPort = opts.port || 5000;       // Usa el puerto pasado, o 5000 por defecto
+    this.logstashHost = opts.host || 'localhost';
+    this.logstashPort = opts.port || 5000;
 
+    this.connectToLogstash();
+  }
+
+  private connectToLogstash() {
     this.client = net.connect({ host: this.logstashHost, port: this.logstashPort }, () => {
       console.log(`🟢 Conectado a Logstash en ${this.logstashHost}:${this.logstashPort}`);
+      this.reconnectAttempts = 0; // Reset al conectar exitosamente
     });
 
     this.client.on('error', (err: Error) => {
-      console.error(`🔴 Error en conexión con Logstash (${this.logstashHost}:${this.logstashPort}):`, err.message);
-      // Opcional: Reintentar conexión, etc.
+      console.error(`🔴 Error al conectar con Logstash: ${err.message}`);
+
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.reconnectAttempts++;
+        console.log(`🔁 Reintentando conexión (${this.reconnectAttempts}/${this.maxReconnectAttempts}) en ${this.reconnectDelay}ms...`);
+        setTimeout(() => this.connectToLogstash(), this.reconnectDelay);
+      } else {
+        console.error('❌ Se alcanzó el número máximo de reintentos para conectar a Logstash.');
+      }
+    });
+
+    this.client.on('close', () => {
+      console.warn('🔌 Conexión con Logstash cerrada.');
     });
   }
 
   log(info: any, callback: () => void) {
     setImmediate(() => this.emit('logged', info));
-    try {
-      this.client.write(JSON.stringify(info) + '\n');
-    } catch (e) {
-      console.error('Error al escribir en el socket TCP:', e.message);
+
+    if (this.client && !this.client.destroyed) {
+      try {
+        this.client.write(JSON.stringify(info) + '\n');
+      } catch (e) {
+        console.error('❗ Error al escribir en el socket TCP:', e.message);
+      }
     }
+
     callback();
   }
 }
 
-// 2. Modifica MyLogger para inyectar ConfigService y pasar los valores
-@Injectable() // <-- Importante: Marca MyLogger como inyectable
+@Injectable()
 export class MyLogger implements LoggerService {
   private logger: winston.Logger;
 
-  // Inyecta ConfigService en el constructor
   constructor(private configService: ConfigService) {
-    // Obtiene los valores del host y puerto de Logstash desde las variables de entorno
-    // Usa 'logstash' como host por defecto si no se encuentra la variable (para el entorno Docker)
     const logstashHost = this.configService.get<string>('LOGSTASH_HOST', 'logstash');
     const logstashPort = parseInt(this.configService.get<string>('LOGSTASH_PORT', '5000'), 10);
 
@@ -131,8 +73,8 @@ export class MyLogger implements LoggerService {
     this.logger = winston.createLogger({
       level: 'info',
       transports: [
-        new winston.transports.Console(), // Para ver los logs en la consola del contenedor
-        new TCPTransport({ host: logstashHost, port: logstashPort }), // Pasa host y port al TCPTransport
+        new winston.transports.Console(),
+        new TCPTransport({ host: logstashHost, port: logstashPort }),
       ],
     });
   }

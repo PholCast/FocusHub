@@ -63,7 +63,7 @@ services:
       - xpack.security.enabled=false
       - xpack.monitoring.collection.enabled=true
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx2g"
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
       memlock:
         soft: -1
@@ -79,7 +79,7 @@ services:
     image: docker.elastic.co/logstash/logstash:8.13.2
     container_name: logstash
     ports:
-      - "5000:5000/tcp" # Exponer el puerto de entrada TCP para Logstash
+      - "5000:5000" # Exponer el puerto de entrada TCP para Logstash
     volumes:
       - ./elk/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro # Ruta relativa a FocusHub
     depends_on:
