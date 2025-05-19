@@ -5,7 +5,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: var(--secondary-bg); /* Using secondary background for the page background */
+    background-color: var(--primary-bg); /* Using secondary background for the page background */
     color: var(--text-color); /* Using primary text color */
     font-family: 'Segoe UI', sans-serif; /* Ensure font is consistent */
     /* Override any global margin-left from navigation */
@@ -111,6 +111,11 @@ button.secondary:hover {
 
 .login-container a:hover {
     color: #1976D2; /* Darker blue for link hover */
+}
+@media (max-width: 768px) {
+    body {
+        margin-left: 0 !important; 
+    }
 }
 
 /* Responsive adjustments for smaller screens */

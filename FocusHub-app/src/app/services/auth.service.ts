@@ -41,7 +41,7 @@ export class AuthService {
     return this.http.post<{ access_token: string; user: User }>(`${environment.apiUrl}/auth/login`, credentials).subscribe({
       next: (response) => {
         this.setToken(response.access_token);
-        this.router.navigate(['/home']);
+        this.router.navigate(['/tasks']);
         Swal.fire({
           title: "Éxito",
           text: `Bienvenido, ${response.user.name}!`,

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Renderer2, inject,signal, WritableSignal } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms'; // Importa ReactiveFormsModule y FormBuilder, FormGroup, Validators
-import { NavComponent } from '../shared/components/nav/nav.component';
+import { NavComponent } from '../../shared/components/nav/nav.component';
 
 interface Technique {
   name: string;

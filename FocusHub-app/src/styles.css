@@ -16,10 +16,9 @@ body {
     /* Adjust padding/margin to account for the fixed navigation */
     padding: 20px; /* Keep some padding around the content */
     margin-left: 200px; /* Space for the fixed left nav (desktop) */
-    background-color: var(--secondary-bg); /* Use secondary background color */
+    background-color: var(--primary-bg); /* Use secondary background color */
     color: var(--text-color); /* Use main text color */
 }
-
 /* Adjustment for the main content to not overlap with the nav */
 /* If your main content is wrapped in a div, apply margin/padding there instead of body */
 /* Example:

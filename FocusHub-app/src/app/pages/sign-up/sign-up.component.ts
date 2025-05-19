@@ -5,10 +5,10 @@ import { AuthService } from '../../services/auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
-  selector: 'app-sign-in',
+  selector: 'app-sign-up',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './sign-in.component.html',
-  styleUrl: './sign-in.component.css'
+  templateUrl: './sign-up.component.html',
+  styleUrl: './sign-up.component.css'
 })
 export class SignInComponent {
   private fb = inject(FormBuilder);
