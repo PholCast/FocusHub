@@ -44,7 +44,7 @@ onLogin(): void {
         icon: "success",
         confirmButtonText: "Aceptar"
       });
-      this.router.navigate(['/tasks']);
+      this.router.navigate(['/tasks']); //Tasks para que envie a la pagina tasks post-login
     },
     error: () => {
       Swal.fire({
