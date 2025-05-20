@@ -1,40 +1,108 @@
+version: '3.8' # Usar una versión de Compose más reciente para mejor compatibilidad
+
 services:
+  # --- Servicios de la Aplicación ---
   frontend:
-      #build:
-        #context: ./FocusHub-app
-        #dockerfile: Dockerfile
-      image: pholcast25/focus-hub-angular:latest  # Imagen para Docker Hub
-      ports:
-        - "4200:4200"
-      volumes:
-        - ./FocusHub-app:/app
-        #- /app/node_modules
-      command: npm run start
-      environment:
-        - NODE_ENV=development
-      depends_on:
-        - backend
+    build:
+      context: ./FocusHub-app # Ruta relativa a FocusHub
+      dockerfile: Dockerfile
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./FocusHub-app:/app
+      - /app/node_modules # Volumen anónimo para node_modules, importante para watch mode
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - backend
+    networks:
+      - focus_hub_network
 
   backend:
-    #build:
-      #context: ./focus-hub-backend  # Directorio donde se encuentra el Dockerfile del backend
-      #dockerfile: Dockerfile
-    image: pholcast25/focus-hub-nest-js:latest
+    build:
+      context: ./focus-hub-backend # Ruta relativa a FocusHub
+      dockerfile: Dockerfile
     ports:
       - '3000:3000'
     environment:
       - PORT=3000
       - NODE_ENV=development
+      - JWT_SECRET=your_jwt_secret # ¡IMPORTANTE: Reemplaza esto con tu secreto real!
+      - LOGSTASH_HOST=logstash # Ahora 'logstash' es el nombre de servicio dentro de la misma red
+      - LOGSTASH_PORT=5000
     volumes:
-      #- ./src:/usr/src/app/src
       - ./focus-hub-backend:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - mysql_db
+      - logstash # El backend depende de Logstash para enviar logs
+    networks:
+      - focus_hub_network
+
   mysql_db:
-    image: mysql
+    image: mysql:8 # Versión específica
+    container_name: mysql_db
     ports:
-      - '3307:3307'
+      - '3307:3306'
     environment:
       - MYSQL_ROOT_PASSWORD=root_password_123
       - MYSQL_DATABASE=focus_hub_database
       - MYSQL_USER=testuser
       - MYSQL_PASSWORD=testuser123
-      - MYSQL_TCP_PORT=3307
+    volumes:
+      - mysql_data:/var/lib/mysql # Persistencia de datos para MySQL
+    networks:
+      - focus_hub_network
+
+  # --- Servicios ELK Stack ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.monitoring.collection.enabled=true
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200" # Puerto HTTP de Elasticsearch
+    volumes:
+      - esdata:/usr/share/elasticsearch/data # Persistencia de datos para Elasticsearch
+    networks:
+      - focus_hub_network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.2
+    container_name: logstash
+    ports:
+      - "5000:5000" # Exponer el puerto de entrada TCP para Logstash
+    volumes:
+      - ./elk/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro # Ruta relativa a FocusHub
+    depends_on:
+      - elasticsearch # Logstash necesita que Elasticsearch esté levantado
+    
+    networks:
+      - focus_hub_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.2
+    container_name: kibana
+    ports:
+      - "5601:5601" # Puerto de Kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # Conectar a Elasticsearch por su nombre de servicio
+    depends_on:
+      - elasticsearch # Kibana necesita que Elasticsearch esté levantado
+    networks:
+      - focus_hub_network
+
+volumes:
+  mysql_data:
+  esdata:
+
+networks:
+  focus_hub_network:

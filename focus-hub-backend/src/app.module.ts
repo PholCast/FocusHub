@@ -11,6 +11,7 @@ import { ProductivityModule } from './productivity/productivity.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { MyLogger } from './logger.service';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -18,13 +19,13 @@ import { ConfigModule } from '@nestjs/config';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
+      host: 'mysql_db',
       port: 3306,
-      username: 'root',
-      password: '1234',
-      database: 'focusHubDatabase',
+      username: 'testuser',
+      password: 'testuser123',
+      database: 'focus_hub_database',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      //synchronize: true, // Solo para desarrollo, no usar en producción
+      synchronize: true, // Solo para desarrollo, no usar en producción
       logging: true,
     }),
     UsersModule,
@@ -37,6 +38,6 @@ import { ConfigModule } from '@nestjs/config';
     AuthModule
     ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService,MyLogger],
 })
 export class AppModule {}
