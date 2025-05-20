@@ -1,9 +1,10 @@
 services:
   # --- Servicios de la Aplicación ---
   frontend:
-    build:
-      context: ./FocusHub-app
-      dockerfile: Dockerfile
+    #build:
+      #context: ./FocusHub-app
+      #dockerfile: Dockerfile
+    image: pholcast25/focus-hub-angular:latest
     ports:
       - "4200:4200"
     volumes:
@@ -17,9 +18,10 @@ services:
       - focus_hub_network
 
   backend:
-    build:
-      context: ./focus-hub-backend
-      dockerfile: Dockerfile
+    #build:
+      #context: ./focus-hub-backend
+      #dockerfile: Dockerfile
+    image: pholcast25/focus-hub-nest-js:latest
     ports:
       - '3000:3000'
     environment:
