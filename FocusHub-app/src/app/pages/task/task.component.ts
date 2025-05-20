@@ -32,7 +32,7 @@ export class TaskComponent implements OnInit {
 
   loadTasks(): void {
     const loadedTasks = this.taskService.getTasks();
-    // Aseguramos que los status sean válidos
+
     this.tasks = loadedTasks.map(task => ({
       ...task,
       status: this.isValidStatus(task.status) ? task.status : 'pending'
@@ -111,7 +111,7 @@ export class TaskComponent implements OnInit {
 
   saveTaskDetails(): void {
     if (this.selectedTask && this.selectedTask.status !== 'completed') {
-      // Validamos el status antes de guardar
+
       if (!this.isValidStatus(this.selectedTask.status)) {
         this.selectedTask.status = 'pending';
       }

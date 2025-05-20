@@ -13,7 +13,7 @@ import { UpdateFocusSessionTaskDto } from './dto/update-focus-session-task.dto';
 export class ProductivityController {
   constructor(private readonly productivityService: ProductivityService) {}
 
-  //Techniques
+
   @Post('techniques')
   @ApiOperation({ summary: 'Create a new technique' })
   @ApiResponse({ status: 201, description: 'Technique created successfully' })
@@ -64,7 +64,7 @@ export class ProductivityController {
 
 
 
-  //focus_sessions
+
   @Post('focus-sessions')
   @ApiOperation({ summary: 'Create a new focus session' })
   @ApiResponse({ status: 201, description: 'Focus session created successfully' })
@@ -105,7 +105,7 @@ export class ProductivityController {
     return this.productivityService.removeFocusSession(+id, userId);
   }
 
-  //focus_sessions_tasks
+
 
   @Post('focus-session-tasks')
   @ApiOperation({ summary: 'Create a new focus session task' })

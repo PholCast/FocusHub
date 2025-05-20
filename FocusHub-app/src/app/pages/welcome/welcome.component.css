@@ -1,9 +1,9 @@
 body {
   margin-top: 0px;
   margin-left: -200px;
-  /* Use !important if necessary to override global styles */
+  
   background-color: var(--primary-bg) !important;
-  /* Using secondary background for the page background */
+  
   overflow-y: hidden;
 
   overflow-x: hidden;
@@ -48,20 +48,20 @@ h1 {
   margin-bottom: 15px;
   font-size: 2.8em;
 
-  /* Aseguramos que los spans estén en línea para formar la palabra */
+  
   span {
     display: inline-block;
   }
 
   .hub-highlight {
     background-color: var(--accent-color);
-    /* Fondo azul */
+    
     color: var(--primary-bg);
-    /* Texto blanco */
+    
     padding: 0 0.2em;
-    /* Un poco de padding horizontal */
+    
     border-radius: 3px;
-    /* Opcional: bordes redondeados */
+    
   }
 
   @media (max-width: 768px) {

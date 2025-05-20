@@ -24,7 +24,7 @@ export class ProductivityService {
     @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
   ) {}
 
-  //techniques
+
   async createTechnique(userId: number, createTechniqueDto: CreateTechniqueDto): Promise<Technique> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException(`User with ID ${userId} not found`);
@@ -83,7 +83,7 @@ export class ProductivityService {
   }
 
 
-  //focus-sessions
+
   async createFocusSession(createFocusSessionDto: CreateFocusSessionDto): Promise<FocusSession> {
     const { userId, techniqueId, status } = createFocusSessionDto;
 
@@ -92,8 +92,8 @@ export class ProductivityService {
 
     const technique = await this.techniqueRepository.findOne({
       where: [
-            { id: techniqueId, user: { id: userId } },  // Técnicas del usuario
-            { id: techniqueId, user: IsNull() },           // Técnicas globales
+            { id: techniqueId, user: { id: userId } },
+            { id: techniqueId, user: IsNull() },
       ],
     });
     if (!technique) throw new NotFoundException(`Technique with ID ${techniqueId} not found for this user`);
@@ -137,11 +137,11 @@ export class ProductivityService {
 
 
   }
-  //focus_session_tasks
+
   async createFocusSessionTask(createFocusSessionTaskDto: CreateFocusSessionTaskDto): Promise<FocusSessionTask> {
     const { focusSessionId, taskId } = createFocusSessionTaskDto;
 
-    // Verificar que la sesión de enfoque exista y traer su usuario
+
     const focusSession = await this.focusSessionRepository.findOne({
       where: { id: focusSessionId },
       relations: ['user'],
@@ -150,7 +150,7 @@ export class ProductivityService {
       throw new NotFoundException(`Focus session with ID ${focusSessionId} not found`);
     }
 
-    // Verificar que la tarea exista y pertenezca al mismo usuario que la sesión de enfoque
+
     const task = await this.taskRepository.findOne({
       where: { id: taskId, user: { id: focusSession.user.id } },
     });
@@ -158,7 +158,7 @@ export class ProductivityService {
       throw new NotFoundException(`Task with ID ${taskId} not found for this user`);
     }
 
-    // Verificar que no se repita la combinación
+
     const existingTask = await this.focusSessionTaskRepository.findOne({
       where: { focusSession: { id: focusSessionId }, task: { id: taskId } },
     });
@@ -166,7 +166,7 @@ export class ProductivityService {
       throw new BadRequestException(`Task with ID ${taskId} is already linked to this focus session`);
     }
 
-    // Crear la relación focus session task con las entidades completas
+
     const focusSessionTask = this.focusSessionTaskRepository.create({
       focusSession,
       task,

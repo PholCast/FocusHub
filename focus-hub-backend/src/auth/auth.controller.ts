@@ -1,4 +1,4 @@
-// src/auth/auth.controller.ts
+
 import { Body, Controller, Post, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
@@ -23,7 +23,7 @@ export class AuthController {
       if (error.message === 'Email already registered') {
         throw new ConflictException('Este correo electrónico ya está registrado');
       }
-      throw error; // Otros errores
+      throw error;
     }
   }
 }

@@ -56,7 +56,7 @@ export class TasksService {
     task.status = createTaskDto.status || 'pending';
     task.user = user;
 
-    // If category is provided, validate and assign it
+
     if (createTaskDto.categoryId) {
       const category = await this.categoryRepository.findOne({
         where: { id: createTaskDto.categoryId, user: { id: userId } },
@@ -75,14 +75,14 @@ export class TasksService {
   async update(id: number, userId: number, updateTaskDto: UpdateTaskDto): Promise<Task> {
     const task = await this.findOne(id, userId);
 
-    // Update simple properties
+
     if (updateTaskDto.title !== undefined) task.title = updateTaskDto.title;
     if (updateTaskDto.description !== undefined) task.description = updateTaskDto.description;
     if (updateTaskDto.dueDate !== undefined) task.dueDate = updateTaskDto.dueDate;
     if (updateTaskDto.priority !== undefined) task.priority = this.mapPriority(updateTaskDto.priority);
     if (updateTaskDto.status !== undefined) task.status = updateTaskDto.status;
 
-    // Update category if provided
+
     if (updateTaskDto.categoryId !== undefined) {
       if (updateTaskDto.categoryId === null) {
         task.category = undefined;
@@ -124,7 +124,7 @@ export class TasksService {
   }
 
   async findByPriority(userId: number, priority: 'Alta' | 'Media' | 'Baja'): Promise<Task[]> {
-    const mappedPriority = this.mapPriority(priority); // convierte 'Alta' → 'High', etc.
+    const mappedPriority = this.mapPriority(priority);
     return this.taskRepository.find({
       where: { user: { id: userId }, priority: mappedPriority },
       relations: ['category'],
@@ -146,6 +146,6 @@ export class TasksService {
       'Alta': 'High'
     };
 
-    return mapping[priority] ?? 'Medium'; // default a 'Medium' si no hay match
+    return mapping[priority] ?? 'Medium';
   }
 }

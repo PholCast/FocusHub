@@ -1,4 +1,4 @@
-// src/users/users.service.ts
+
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -26,28 +26,28 @@ export class UsersService {
 }
 
 
-  // Obtener todos los usuarios
+
   async getUsers() {
-    return await this.userRepository.find(); // Recupera todos los usuarios
+    return await this.userRepository.find();
   }
 
-  // Obtener un usuario por ID
+
   async getUserById(id: number) {
-    return await this.userRepository.findOne({ where: { id } }); // Recupera un usuario por ID
+    return await this.userRepository.findOne({ where: { id } });
   }
 
-  // Actualizar un usuario por ID
+
   async updateUser(id: number, updateUserDto: Partial<User>) {
     await this.userRepository.update(id, updateUserDto);
-    return this.getUserById(id); // Retorna el usuario actualizado
+    return this.getUserById(id);
   }
 
-  // Eliminar un usuario por ID
+
   async deleteUser(id: number) {
     const user = await this.getUserById(id);
     if (user) {
-      await this.userRepository.delete(id); // Elimina el usuario de la base de datos
-      return user; // Retorna el usuario eliminado
+      await this.userRepository.delete(id);
+      return user;
     }
     return null;
   }

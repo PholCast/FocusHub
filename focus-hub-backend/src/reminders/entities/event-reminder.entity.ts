@@ -20,8 +20,8 @@ export class EventReminder {
   @Column({ type: 'tinyint', default: 1, nullable: false })
   status: boolean;
 
-  // Relación uno a uno con Event
-  @OneToOne(() => Event, (event) => event.reminder) // Especifica la relación inversa
-  @JoinColumn({ name: 'events_id' }) // Define el nombre de la columna de la clave foránea
+
+  @OneToOne(() => Event, (event) => event.reminder)
+  @JoinColumn({ name: 'events_id' })
   event: Event;
 }

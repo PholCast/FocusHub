@@ -21,9 +21,9 @@ export class Event {
   @Column({ type: 'datetime', nullable: true, default: null })
   endTime?: Date;
 
-  // @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
-  // createdAt: Date;
-   // 🔄 Simplificación para el campo createdAt
+
+
+
   @CreateDateColumn()
   createdAt: Date;
   
@@ -35,7 +35,7 @@ export class Event {
   @JoinColumn({ name: 'category_id' })
   category?: Category;
 
-  // Relación uno a uno con EventReminder
+
   @OneToOne(() => EventReminder, (eventReminder) => eventReminder.event, { nullable: true })
   reminder: EventReminder;
 }

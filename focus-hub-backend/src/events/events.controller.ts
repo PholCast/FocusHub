@@ -13,7 +13,7 @@ export class EventsController {
 
   @Post()
   create(@Body() dto: CreateEventDto, @Request() req): Promise<Event> {
-    const userId = req.user.sub; // O req.user.id según cómo tengas el payload del JWT
+    const userId = req.user.sub;
     return this.eventsService.create(dto, userId);
   }
 

@@ -19,7 +19,7 @@ export class FocusSession {
   @Column({ type: 'enum', enum: ['in_progress', 'paused', 'completed'], default: 'in_progress' })
   status: 'in_progress' | 'paused' | 'completed';
 
-   // 🔄 Simplificación para el campo createdAt
+
   @CreateDateColumn()
   createdAt: Date;
   

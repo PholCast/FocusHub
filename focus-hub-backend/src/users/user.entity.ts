@@ -40,10 +40,10 @@ export class User {
   @OneToMany(() => Category, (category) => category.user)
   categories: Category[];
 
-  @OneToMany(() => Event, (event) => event.user) // Relación de 1 a muchos
+  @OneToMany(() => Event, (event) => event.user)
   events: Event[];
 
-   // Relación OneToMany con Technique
+
   @OneToMany(() => Technique, (technique) => technique.user, { nullable: true, cascade: true })
   techniques?: Technique[];
 

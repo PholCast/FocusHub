@@ -34,10 +34,10 @@ export class Task {
   @JoinColumn({ name: 'category_id' })
   category?: Category;
 
-  // @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
-  // createdAt: Date;
 
-   // 🔄 Simplificación para el campo createdAt
+
+
+
   @CreateDateColumn()
   createdAt: Date;
   

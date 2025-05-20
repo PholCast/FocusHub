@@ -15,7 +15,7 @@ import { Router } from '@angular/router';
 export class LogInComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
-  private router = inject(Router); // Agrega esto
+  private router = inject(Router); 
   
   loginForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

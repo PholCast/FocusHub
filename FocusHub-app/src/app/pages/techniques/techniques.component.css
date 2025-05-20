@@ -60,7 +60,7 @@ select {
     opacity: 0.9;
 }
 
-/* Timer Tabs */
+
 .timer-tabs {
     display: flex;
     justify-content: center;
@@ -82,7 +82,7 @@ select {
     background-color: var(--accent-color);
 }
 
-/* Timer Circle */
+
 .timer-container {
     display: flex;
     justify-content: center;
@@ -119,7 +119,7 @@ select {
     z-index: 2;
 }
 
-/* Timer Controls */
+
 .timer-controls {
     display: flex;
     justify-content: center;
@@ -150,7 +150,7 @@ select {
     cursor: not-allowed;
 }
 
-/* Associated Tasks */
+
 .associated-tasks {
     background-color: var(--secondary-bg);
     border-radius: 1rem;
@@ -194,7 +194,7 @@ select {
     width: 100%;
 }
 
-/* Modal */
+
 .modal {
     display: none;
     position: fixed;
@@ -270,7 +270,7 @@ select {
     font-weight: 500;
 }
 
-/* Floating Timer */
+
 .floating-timer {
     position: fixed;
     bottom: 2rem;
@@ -330,7 +330,7 @@ select {
     cursor: not-allowed;
 }
 
-/* Responsive */
+
 @media (max-width: 768px) {
     .timer-circle {
         width: 250px;

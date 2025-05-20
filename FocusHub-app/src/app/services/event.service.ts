@@ -16,7 +16,7 @@ export class EventService {
     this.loadEventsFromBackend();
   }
 
-  /** Carga eventos desde el backend y actualiza el observable */
+  
   private loadEventsFromBackend(): void {
     this.http.get<CalendarEvent[]>(this.apiUrl)
       .subscribe(events => {
@@ -25,7 +25,7 @@ export class EventService {
       });
   }
 
-  /** Mapea el evento al formato esperado por el backend (sin userId) */
+  
   private toCreateEventDto(event: Omit<CalendarEvent, 'id' | 'createdAt'>): any {
     return {
       title: event.title,
@@ -36,7 +36,7 @@ export class EventService {
     };
   }
 
-  /** Mapea el evento al formato esperado por el backend para actualizaciones (sin userId) */
+  
   private toUpdateEventDto(event: CalendarEvent): any {
     return {
       title: event.title,
@@ -47,7 +47,7 @@ export class EventService {
     };
   }
 
-  /** Crea un nuevo evento en el backend */
+  
   addEvent(event: Omit<CalendarEvent, 'id'>): void {
     const dto = this.toCreateEventDto(event);
     this.http.post<CalendarEvent>(this.apiUrl, dto)
@@ -55,7 +55,7 @@ export class EventService {
       .subscribe();
   }
 
-  /** Actualiza un evento existente en el backend */
+  
   updateEvent(event: CalendarEvent): void {
     const dto = this.toUpdateEventDto(event);
     this.http.put<CalendarEvent>(`${this.apiUrl}/${event.id}`, dto)
@@ -63,7 +63,7 @@ export class EventService {
       .subscribe();
   }
 
-  /** Elimina un evento del backend */
+  
   deleteEvent(id: number): void {
     this.http.delete<void>(`${this.apiUrl}/${id}`)
       .pipe(tap(() => this.loadEventsFromBackend()))

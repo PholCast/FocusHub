@@ -16,7 +16,7 @@ export class TaskService {
     this.loadTasks();
   }
 
-  /** Carga las tareas del backend */
+  
   private loadTasks(): void {
     this.http.get<Task[]>(this.apiUrl).subscribe({
       next: tasks => {
@@ -27,26 +27,26 @@ export class TaskService {
     });
   }
 
-  /** Retorna snapshot inmediato (no observable) */
+  
   getTasks(): Task[] {
     return this._tasks$.getValue();
   }
 
-  /** Crea una nueva tarea */
+  
   addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>): void {
     this.http.post<Task>(this.apiUrl, task).pipe(
       tap(() => this.loadTasks())
     ).subscribe();
   }
 
-  /** Actualiza una tarea completa */
+  
   updateTask(updatedTask: Task): void {
     this.http.patch<Task>(`${this.apiUrl}/${updatedTask.id}`, updatedTask).pipe(
       tap(() => this.loadTasks())
     ).subscribe();
   }
 
-  /** Marca una tarea como completada o pendiente */
+  
   toggleComplete(id: number): void {
     const task = this.getTasks().find(t => t.id === id);
     if (!task) return;
@@ -57,14 +57,14 @@ export class TaskService {
     ).subscribe();
   }
 
-  /** Elimina una tarea */
+  
   deleteTask(id: number): void {
     this.http.delete(`${this.apiUrl}/${id}`).pipe(
       tap(() => this.loadTasks())
     ).subscribe();
   }
 
-  /** Duplica una tarea */
+  
   duplicateTask(id: number): void {
     const original = this.getTasks().find(t => t.id === id);
     if (!original) return;
@@ -82,7 +82,7 @@ export class TaskService {
     this.addTask(duplicated);
   }
 
-  /** Estas funciones siguen accediendo localmente, pero puedes adaptarlas más adelante */
+  
   getCategories(): string[] {
     const categories = localStorage.getItem('categories');
     return categories ? JSON.parse(categories) : ['Personal', 'Trabajo', 'Estudio'];
@@ -109,12 +109,12 @@ export class TaskService {
     }
   }
 
-  /** Opcional: marcar tareas vencidas */
+  
   checkOverdueTasks(): void {
     const updated: Task[] = this.getTasks().map(task => {
       if ((task.status === 'pending' || task.status === 'in_progress') &&
           task.dueDate && new Date(task.dueDate) < new Date()) {
-        return { ...task, status: 'overdue' as const }; // <- aquí el truco
+        return { ...task, status: 'overdue' as const }; 
       }
       return task;
     });

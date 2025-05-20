@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Renderer2, inject,signal, WritableSignal } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms'; // Importa ReactiveFormsModule y FormBuilder, FormGroup, Validators
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NavComponent } from '../../shared/components/nav/nav.component';
 
 interface Technique {
@@ -13,7 +13,7 @@ interface Technique {
 @Component({
   selector: 'app-techniques',
   standalone: true,
-  imports: [NavComponent,FormsModule, ReactiveFormsModule], // Importa ReactiveFormsModule aquí
+  imports: [NavComponent,FormsModule, ReactiveFormsModule],
   templateUrl: './techniques.component.html',
   styleUrls: ['./techniques.component.css']
 })
@@ -41,12 +41,12 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   currentTechnique: Technique = this.techniques['pomodoro'];
   currentMode: 'work' | 'shortBreak' | 'longBreak' = 'work';
-  // timeLeft: number = this.currentTechnique.workTime;
+
   timerIntervalSubscription: Subscription | null = null;
   isRunning: boolean = false;
   pomodoroCount: number = 0;
-  // activeTabIndex: number = 0;
-  // isNewTechniqueModalVisible: boolean = false;
+
+
   isFloatingTimerVisible: boolean = false;
 
   isNewTechniqueModalVisible = signal(false);
@@ -60,14 +60,14 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     name: ['', Validators.required],
     workDuration: [null, [Validators.required, Validators.min(1), Validators.max(120)]],
     shortBreak: [null, [Validators.required, Validators.min(1), Validators.max(30)]],
-    longBreak: [0, [Validators.min(0), Validators.max(60)]], // Opcional con valor por defecto 0
+    longBreak: [0, [Validators.min(0), Validators.max(60)]],
   });
 
   @ViewChild('timerDisplay') timerDisplay!: ElementRef;
   @ViewChild('timerCircle') timerCircle!: ElementRef;
   @ViewChild('techniqueSelect') techniqueSelect!: ElementRef;
   @ViewChild('newTechniqueModal') newTechniqueModal!: ElementRef;
-  @ViewChild('newTechniqueFormElement') newTechniqueFormElement!: ElementRef; // Referencia al elemento <form>
+  @ViewChild('newTechniqueFormElement') newTechniqueFormElement!: ElementRef;
   @ViewChild('floatingTimer') floatingTimer!: ElementRef;
   @ViewChild('floatingTimerDisplay') floatingTimerDisplay!: ElementRef;
   @ViewChild('tabButtons') tabButtons!: ElementRef<HTMLCollectionOf<HTMLButtonElement>>;
@@ -108,7 +108,7 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
       totalTime = this.currentTechnique.longBreak;
     }
 
-    const progress = (this.timeLeft() / totalTime) * 100; // Usar timeLeft() para obtener el valor
+    const progress = (this.timeLeft() / totalTime) * 100;
     this.renderer.setStyle(
       this.timerCircle.nativeElement,
       'background',
@@ -123,8 +123,8 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isRunning = true;
 
     this.timerIntervalSubscription = interval(1000).subscribe(() => {
-      if (this.timeLeft() > 0) { // Usar timeLeft() para obtener el valor
-        this.timeLeft.update(value => value - 1); // Usar .update() para actualizar el valor
+      if (this.timeLeft() > 0) {
+        this.timeLeft.update(value => value - 1);
         this.updateTimerDisplay();
         this.updateProgressCircle();
       } else {
@@ -182,47 +182,47 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     this.updateTimerDisplay();
     this.updateProgressCircle();
   }
-  // setActiveTab(index: number): void {
-  //   const tabButtonsArray = Array.from(this.tabButtons.nativeElement);
-  //   tabButtonsArray.forEach((button, i) => {
-  //     if (i === index) {
-  //       this.renderer.addClass(button, 'active');
-  //     } else {
-  //       this.renderer.removeClass(button, 'active');
-  //     }
-  //   });
-  //   this.activeTabIndex = index;
-  //   this.stopTimer();
 
-  //   if (index === 0) {
-  //     this.currentMode = 'work';
-  //     this.timeLeft = this.currentTechnique.workTime;
-  //   } else if (index === 1) {
-  //     this.currentMode = 'shortBreak';
-  //     this.timeLeft = this.currentTechnique.shortBreak;
-  //   } else {
-  //     this.currentMode = 'longBreak';
-  //     this.timeLeft = this.currentTechnique.longBreak;
-  //   }
-  //   this.updateTimerDisplay();
-  //   this.updateProgressCircle();
-  // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   switchToNextMode(): void {
     if (this.currentMode === 'work') {
       this.pomodoroCount++;
       if (this.pomodoroCount % 4 === 0 && this.currentTechnique.longBreak > 0) {
         this.currentMode = 'longBreak';
-        this.timeLeft.set(this.currentTechnique.longBreak); // Usar .set()
+        this.timeLeft.set(this.currentTechnique.longBreak);
         this.setActiveTab(2);
       } else {
         this.currentMode = 'shortBreak';
-        this.timeLeft.set(this.currentTechnique.shortBreak); // Usar .set()
+        this.timeLeft.set(this.currentTechnique.shortBreak);
         this.setActiveTab(1);
       }
     } else {
       this.currentMode = 'work';
-      this.timeLeft.set(this.currentTechnique.workTime); // Usar .set()
+      this.timeLeft.set(this.currentTechnique.workTime);
       this.setActiveTab(0);
     }
   }
@@ -235,7 +235,7 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     this.updateTimerDisplay();
     this.updateProgressCircle();
 
-    // Verificar si tabButtons.nativeElement está definido antes de usarlo
+
     if (this.tabButtons && this.tabButtons.nativeElement) {
       const tabButtonsArray = Array.from(this.tabButtons.nativeElement);
       this.renderer.setProperty(tabButtonsArray[0], 'textContent', 'Sesión de concentración');
@@ -251,7 +251,7 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     this.resetTimer();
-    // No necesitamos setActiveTab(0) aquí ya que se llama directamente en saveNewTechnique con retraso
+
     this.pomodoroCount = 0;
   }
 
@@ -261,7 +261,7 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   hideNewTechniqueModal(): void {
     this.isNewTechniqueModalVisible.set(false);
-    this.newTechniqueForm.reset(); // Limpiar el formulario al cerrar
+    this.newTechniqueForm.reset();
   }
 
   saveNewTechnique(): void {
@@ -283,13 +283,13 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
       this.renderer.setProperty(this.techniqueSelect.nativeElement, 'value', techniqueId);
 
-      // Llamar a changeTechnique con un pequeño retraso para asegurar que tabButtons esté disponible
+
       setTimeout(() => {
         this.changeTechnique({ target: this.techniqueSelect.nativeElement } as any);
-       this.setActiveTab(0); // Establecer la pestaña activa a 0
+       this.setActiveTab(0);
       }, 0);
 
-      this.isNewTechniqueModalVisible.set(false); // Cerrar el modal
+      this.isNewTechniqueModalVisible.set(false);
       this.setActiveTab(0);
       this.newTechniqueForm.reset();
 
@@ -305,7 +305,7 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   playNotificationSound(): void {
     console.log('¡Tiempo terminado!');
-    // Aquí podrías agregar la lógica para reproducir un sonido
+
   }
 
   startFloatingTimer(): void {

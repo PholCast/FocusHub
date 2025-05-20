@@ -4,7 +4,7 @@ import { RemindersController } from './reminders.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventReminder } from './entities/event-reminder.entity';
 import { TaskReminder } from './entities/task-reminder.entity';
-import { Event } from '../events/event.entity'; // Correcto
+import { Event } from '../events/event.entity';
 import { Task } from '../tasks/task.entity';
 import { EventsModule } from '../events/events.module';
 import { TasksModule } from '../tasks/tasks.module';

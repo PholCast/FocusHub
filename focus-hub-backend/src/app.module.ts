@@ -15,7 +15,7 @@ import { MyLogger } from './logger.service';
 
 @Module({
   imports: [ConfigModule.forRoot({
-      isGlobal: true, // hace que esté disponible en toda la app
+      isGlobal: true,
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
@@ -25,7 +25,7 @@ import { MyLogger } from './logger.service';
       password: 'testuser123',
       database: 'focus_hub_database',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // Solo para desarrollo, no usar en producción
+      synchronize: true,
       logging: true,
     }),
     UsersModule,

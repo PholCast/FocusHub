@@ -14,7 +14,7 @@ export class SignInComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
-  // Registration form with validation rules
+
   registryForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],

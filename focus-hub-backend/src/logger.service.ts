@@ -1,5 +1,4 @@
 
-// focus-hub-backend/src/logger.service.ts
 import { LoggerService, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as winston from 'winston';
@@ -12,7 +11,7 @@ class TCPTransport extends Transport {
   private logstashPort: number;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
-  private reconnectDelay = 2000; // 2 segundos entre intentos
+  private reconnectDelay = 2000;
 
   constructor(opts: any) {
     super(opts);
@@ -25,7 +24,7 @@ class TCPTransport extends Transport {
   private connectToLogstash() {
     this.client = net.connect({ host: this.logstashHost, port: this.logstashPort }, () => {
       console.log(`🟢 Conectado a Logstash en ${this.logstashHost}:${this.logstashPort}`);
-      this.reconnectAttempts = 0; // Reset al conectar exitosamente
+      this.reconnectAttempts = 0;
     });
 
     this.client.on('error', (err: Error) => {

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
 import { User } from '../shared/interfaces/user.interface';
-import { environment } from '../../environments/environment'; // Asegúrate de tener tu URL base aquí
+import { environment } from '../../environments/environment'; 
 import { tap } from 'rxjs/operators';
 
 
@@ -13,27 +13,27 @@ import { tap } from 'rxjs/operators';
 export class AuthService {
   private readonly TOKEN_KEY = 'access_token';
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) { }
 
-  // Método para registrar un usuario
+
   signUp(userData: User) {
     return this.http.post(`${environment.apiUrl}/auth/register`, userData);
   }
 
 
-  // Método para iniciar sesión
-logIn(credentials: { email: string; password: string }) {
-  return this.http.post<{ access_token: string; user: User }>(
-    `${environment.apiUrl}/auth/login`, 
-    credentials
-  ).pipe(
-    tap(response => {
-      this.setToken(response.access_token); // <- ✅ Aquí guardas el token
-    })
-  );
-}
 
-  // Método para cerrar sesión
+  logIn(credentials: { email: string; password: string }) {
+    return this.http.post<{ access_token: string; user: User }>(
+      `${environment.apiUrl}/auth/login`,
+      credentials
+    ).pipe(
+      tap(response => {
+        this.setToken(response.access_token); 
+      })
+    );
+  }
+
+
   logOut() {
     this.clearToken();
     this.router.navigate(['/log-in']);
@@ -45,7 +45,7 @@ logIn(credentials: { email: string; password: string }) {
     });
   }
 
-  // Métodos para manejar el token
+
   private setToken(token: string) {
     localStorage.setItem(this.TOKEN_KEY, token);
   }
@@ -63,14 +63,14 @@ logIn(credentials: { email: string; password: string }) {
     return !!this.getToken();
   }
 
-  // ✅ Nuevo método para obtener el ID del usuario actual desde el JWT
+
   getCurrentUserId(): number | null {
     const token = this.getToken();
     if (!token) return null;
 
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.sub ?? null; // O payload.user_id si así lo envía tu backend
+      return payload.sub ?? null; 
     } catch (e) {
       console.error('Error decoding token', e);
       return null;

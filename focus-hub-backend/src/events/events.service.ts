@@ -106,9 +106,9 @@ export class EventsService {
     console.log('userId del token:', userId);
     console.log('userId del evento:', event.user?.id);
 
-    //if (Number(event.user.id) !== Number(userId)) {
-    //  throw new ForbiddenException('You do not have permission to update this event');
-    //}
+
+
+
 
     if ('categoryId' in dto) {
       if (dto.categoryId === null) {

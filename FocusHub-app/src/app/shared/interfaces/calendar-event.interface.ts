@@ -1,8 +1,8 @@
 export interface CalendarEvent {
   id: number;
   title: string;
-  startTime: string; // Cambiado de 'start'
-  endTime: string;   // Cambiado de 'end'
+  startTime: string;
+  endTime: string;   
   description?: string;
   createdAt: string | null;
   user_id: number | null;
