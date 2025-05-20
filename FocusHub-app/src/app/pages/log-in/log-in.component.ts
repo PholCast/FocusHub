@@ -44,7 +44,7 @@ onLogin(): void {
         icon: "success",
         confirmButtonText: "Aceptar"
       });
-      this.router.navigate(['/home']);
+      this.router.navigate(['/tasks']);
     },
     error: () => {
       Swal.fire({
