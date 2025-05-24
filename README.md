@@ -47,7 +47,8 @@ cd ..
 ```bash
 docker-compose up
 ```
-El archivo docker-compose.yml ya usa las imágenes de Docker Hub subidas (https://hub.docker.com/repository/docker/pholcast25/focus-hub-frontend/general: pholcast25/focus-hub-frontend:latest y https://hub.docker.com/repository/docker/pholcast25/focus-hub-backend/general: pholcast25/focus-hub-backend:latest) y no requiere que se instale nada más.
+
+El archivo docker-compose.yml ya usa las imágenes de Docker Hub subidas (https://hub.docker.com/repository/docker/pholcast25/focus-hub-angular/general y https://hub.docker.com/repository/docker/pholcast25/focus-hub-nest-js/general) y no requiere que se instale nada más.
 
 Esto levanta los dos servicios de Frontend y Backend:
 📱 Frontend Angular en http://localhost:4200
