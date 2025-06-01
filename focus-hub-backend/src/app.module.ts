@@ -19,7 +19,7 @@ import { MyLogger } from './logger.service';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'mysql_db',
+      host: 'mysql-db',
       port: 3306,
       username: 'testuser',
       password: 'testuser123',
