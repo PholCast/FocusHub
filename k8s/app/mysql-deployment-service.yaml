@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  namespace: focus-hub
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          readinessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 60 # Espera 15 segundos antes de la primera comprobación
+            periodSeconds: 10       # Comprueba cada 10 segundos
+            timeoutSeconds: 5
+            failureThreshold: 3
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root_password_123
+            - name: MYSQL_DATABASE
+              value: focus_hub_database
+            - name: MYSQL_USER
+              value: testuser
+            - name: MYSQL_PASSWORD
+              value: testuser123
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-db
+  namespace: focus-hub
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP

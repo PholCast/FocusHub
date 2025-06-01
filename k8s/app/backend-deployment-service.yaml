@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: focus-hub
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: pholcast25/focus-hub-nest-js:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: development
+            - name: JWT_SECRET
+              value: your_jwt_secret
+            - name: LOGSTASH_HOST
+              value: logstash
+            - name: LOGSTASH_PORT
+              value: "5000"
+            - name: DATABASE_HOST
+              value: mysql-db
+            - name: DATABASE_PORT
+              value: "3306"
+            - name: DATABASE_USERNAME
+              value: testuser
+            - name: DATABASE_PASSWORD
+              value: testuser123
+            - name: DATABASE_NAME
+              value: focus_hub_database
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: focus-hub
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 3000       
+      targetPort: 3000 
+      nodePort: 30080
+  type: NodePort
+
