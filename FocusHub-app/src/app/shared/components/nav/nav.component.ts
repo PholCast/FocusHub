@@ -21,4 +21,10 @@ export class NavComponent {
   logout(): void {
     this.authService.logOut();
   }
+
+  darkmode = false;
+  modetoggle(){
+    this.darkmode = !this.darkmode;
+    document.documentElement.setAttribute('data-theme', this.darkmode ? "dark" : "light");
+  }
 }

@@ -28,6 +28,7 @@ header {
 h1 {
     font-size: 2rem;
     margin-bottom: 1.5rem;
+    color: var(--text-title);
 }
 
 .technique-selector {
@@ -66,6 +67,7 @@ select {
     justify-content: center;
     gap: 0.5rem;
     margin-bottom: 2rem;
+    color: var(--text-secondary);
 }
 
 .tab-btn {
@@ -125,6 +127,7 @@ select {
     justify-content: center;
     gap: 1rem;
     margin-bottom: 2rem;
+    color: var(--text-secondary);
 }
 
 .control-btn {
@@ -253,7 +256,7 @@ select {
 
 .btn-cancel {
     padding: 0.75rem 1.5rem;
-    background-color: transparent;
+    background-color: var(--danger-color);
     color: var(--text-color);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 0.5rem;
@@ -262,7 +265,7 @@ select {
 
 .btn-save {
     padding: 0.75rem 1.5rem;
-    background-color: var(--accent-color);
+    background-color: var(--success-color);
     color: var(--text-color);
     border: none;
     border-radius: 0.5rem;
