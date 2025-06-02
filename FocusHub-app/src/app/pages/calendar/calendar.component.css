@@ -325,11 +325,11 @@
     transition: background-color 0.2s;
     z-index: 1;
 }
-
 .half-hour-slot.top {
     top: 0;
     background-color: var(--background-color-week);
 }
+
 
 .half-hour-slot.bottom {
     bottom: 0;
@@ -376,6 +376,9 @@
     max-height: 100%;
 }
 
+#event-title-in-daily{
+    margin-left: 30px;
+}
 
 .day-tasks {
     grid-row: 25;
@@ -497,9 +500,10 @@
     top: 5px;
     left: 5px;
     font-size: 0.8rem;
-    color: #666;
+    color: var(--text-color);
     text-align: left;
     padding: 0;
+    z-index: 4;
 }
 
 .daily-view-container .event-slot-container {

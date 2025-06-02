@@ -102,7 +102,7 @@
                         <div class="event-in-slot" *ngFor="let event of getEventsForHour(selectedDate, hour)"
                             [style.top]="getEventTopPosition(event)" [style.height]="getEventHeight(event)"
                             [class.event]="true" (click)="editItem(event)">
-                            <div class="event-title" *ngIf="isFirstHourOfEvent(event, selectedDate, hour)">
+                            <div id="event-title-in-daily" class="event-title" *ngIf="isFirstHourOfEvent(event, selectedDate, hour)">
                                 {{ event.title }}
                             </div>
                         </div>
