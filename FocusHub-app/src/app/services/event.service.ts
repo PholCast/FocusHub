@@ -1,72 +1,83 @@
-import { Injectable } from '@angular/core';
-import { CalendarEvent } from '../shared/interfaces/calendar-event.interface';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { inject, Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders, } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
+import { TokenService } from './token.service';
+import {CalendarEvent} from '../shared/interfaces/calendar-event.interface';
+import { signal } from '@angular/core';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventService {
-  private apiUrl = 'http://localhost:3000/events';
-  private _eventsSubject = new BehaviorSubject<CalendarEvent[]>([]);
-  public events$ = this._eventsSubject.asObservable();
+  public events = signal<CalendarEvent[]>([]); // Signal reactiva
 
-  constructor(private http: HttpClient) {
-    this.loadEventsFromBackend();
-  }
+  private readonly baseUrl = 'http://localhost:3000/events'; // Ajusta si cambias prefijo
+  private http = inject(HttpClient);
+  private tokenService = inject(TokenService);
 
   
-  private loadEventsFromBackend(): void {
-    this.http.get<CalendarEvent[]>(this.apiUrl)
-      .subscribe(events => {
-        events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-        this._eventsSubject.next(events);
-      });
+  createEvent(event: Partial<CalendarEvent>): Observable<CalendarEvent> {
+    const payload = this.mapEventToDto(event);
+    return this.http.post<CalendarEvent>(this.baseUrl, payload, this.getHeaders()).pipe(
+      tap((newEvent) => {
+        const current = this.events();
+        this.events.set([...current, newEvent]); // ✅ Ya no es `any`
+      })
+    );
+  }
+  
+  fetchEvents(): void {
+    this.getAllEvents().subscribe((data) => {
+      this.events.set(data);
+    });
   }
 
-  
-  private toCreateEventDto(event: Omit<CalendarEvent, 'id' | 'createdAt'>): any {
+  getAllEvents(): Observable<CalendarEvent[]> {
+    return this.http.get<CalendarEvent[]>(this.baseUrl, this.getHeaders());
+  }
+
+  getEventById(id: number): Observable<CalendarEvent> {
+    return this.http.get<CalendarEvent>(`${this.baseUrl}/${id}`, this.getHeaders());
+  }
+
+
+
+  updateEvent(event: Partial<CalendarEvent>): Observable<CalendarEvent> {
+    if (!event.id) {
+      throw new Error('El evento debe tener un id para poder actualizarse.');
+    }
+    const payload = this.mapEventToDto(event);
+    return this.http.put<CalendarEvent>(`${this.baseUrl}/${event.id}`, payload, this.getHeaders());
+  }
+
+  deleteEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, this.getHeaders());
+  }
+
+  getEventsByDate(date: string): Observable<CalendarEvent[]> {
+    return this.http.get<CalendarEvent[]>(`${this.baseUrl}/by-date`, {
+      ...this.getHeaders(),
+      params: { date }
+    });
+  }
+
+  private mapEventToDto(event: Partial<CalendarEvent>) {
     return {
       title: event.title,
-      description: event.description,
+      description: event.description || '',
       startTime: event.startTime,
-      endTime: event.endTime,
-      categoryId: event.category_id,
+      endTime: event.endTime || null,
+      categoryId: event.category_id || null,
+      userId: event.user_id,
     };
   }
 
-  
-  private toUpdateEventDto(event: CalendarEvent): any {
+  private getHeaders() {
+    const token = this.tokenService.getToken();
     return {
-      title: event.title,
-      description: event.description,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      categoryId: event.category_id,
+      headers: new HttpHeaders({
+        Authorization: `Bearer ${token}`
+      })
     };
-  }
-
-  
-  addEvent(event: Omit<CalendarEvent, 'id'>): void {
-    const dto = this.toCreateEventDto(event);
-    this.http.post<CalendarEvent>(this.apiUrl, dto)
-      .pipe(tap(() => this.loadEventsFromBackend()))
-      .subscribe();
-  }
-
-  
-  updateEvent(event: CalendarEvent): void {
-    const dto = this.toUpdateEventDto(event);
-    this.http.put<CalendarEvent>(`${this.apiUrl}/${event.id}`, dto)
-      .pipe(tap(() => this.loadEventsFromBackend()))
-      .subscribe();
-  }
-
-  
-  deleteEvent(id: number): void {
-    this.http.delete<void>(`${this.apiUrl}/${id}`)
-      .pipe(tap(() => this.loadEventsFromBackend()))
-      .subscribe();
   }
 }

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { AmbientSound } from '../media/ambient-sound.entity';
+import { AmbientSound } from '../ambient-sound/ambient-sound.entity';
 import { Category } from 'src/categories/category.entity';
 import { Event } from '../events/event.entity';
 import { Technique } from 'src/productivity/entities/technique.entity';

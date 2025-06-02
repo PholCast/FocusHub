@@ -3,24 +3,23 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
 import { User } from '../shared/interfaces/user.interface';
-import { environment } from '../../environments/environment'; 
+import { environment } from '../../environments/environment';
 import { tap } from 'rxjs/operators';
-
+import { TokenService } from './token.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly TOKEN_KEY = 'access_token';
-
-  constructor(private http: HttpClient, private router: Router) { }
-
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private tokenService: TokenService
+  ) {}
 
   signUp(userData: User) {
     return this.http.post(`${environment.apiUrl}/auth/register`, userData);
   }
-
-
 
   logIn(credentials: { email: string; password: string }) {
     return this.http.post<{ access_token: string; user: User }>(
@@ -28,14 +27,13 @@ export class AuthService {
       credentials
     ).pipe(
       tap(response => {
-        this.setToken(response.access_token); 
+        this.tokenService.setToken(response.access_token);
       })
     );
   }
 
-
   logOut() {
-    this.clearToken();
+    this.tokenService.clearToken();
     this.router.navigate(['/log-in']);
     Swal.fire({
       title: "Sesión cerrada",
@@ -45,35 +43,16 @@ export class AuthService {
     });
   }
 
-
-  private setToken(token: string) {
-    localStorage.setItem(this.TOKEN_KEY, token);
+  isAuthenticated(): boolean {
+    return !!this.tokenService.getToken() && !this.tokenService.isTokenExpired();
   }
 
-  private clearToken() {
-    localStorage.removeItem(this.TOKEN_KEY);
+  getCurrentUserId(): number | null {
+    const payload = this.tokenService.decodeToken();
+    return payload?.id ?? null;
   }
 
   getToken(): string | null {
-    console.log('[authInterceptor] token:', this.TOKEN_KEY);
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  isAuthenticated(): boolean {
-    return !!this.getToken();
-  }
-
-
-  getCurrentUserId(): number | null {
-    const token = this.getToken();
-    if (!token) return null;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.sub ?? null; 
-    } catch (e) {
-      console.error('Error decoding token', e);
-      return null;
-    }
+    return this.tokenService.getToken();
   }
 }

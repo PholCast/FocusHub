@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MediaService } from './media.service';
+import { AmbientSoundService } from './ambient-sound.service';
 
-describe('MediaService', () => {
-  let service: MediaService;
+describe('AmbientSoundService', () => {
+  let service: AmbientSoundService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MediaService],
+      providers: [AmbientSoundService],
     }).compile();
 
-    service = module.get<MediaService>(MediaService);
+    service = module.get<AmbientSoundService>(AmbientSoundService);
   });
 
   it('should be defined', () => {

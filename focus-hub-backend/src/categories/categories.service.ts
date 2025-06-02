@@ -18,13 +18,6 @@ export class CategoriesService {
 
 
 
-
-
-
-
-
-
-
   async create(userId: number, createCategoryDto: CreateCategoryDto): Promise<Category> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException(`User with ID ${userId} not found`);

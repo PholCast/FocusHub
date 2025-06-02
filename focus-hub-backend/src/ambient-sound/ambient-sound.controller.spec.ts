@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MediaController } from './media.controller';
+import { AmbientSoundController } from './ambient-sound.controller';
 
 describe('MediaController', () => {
-  let controller: MediaController;
+  let controller: AmbientSoundController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [MediaController],
+      controllers: [AmbientSoundController],
     }).compile();
 
-    controller = module.get<MediaController>(MediaController);
+    controller = module.get<AmbientSoundController>(AmbientSoundController);
   });
 
   it('should be defined', () => {

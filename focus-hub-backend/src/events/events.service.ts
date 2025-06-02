@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './event.entity';
 import { User } from '../users/user.entity';
@@ -85,6 +85,24 @@ export class EventsService {
 
     return event;
   }
+
+  async findByDate(date: string): Promise<Event[]> {
+  const startOfDay = new Date(date);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+
+  return this.eventRepository.find({
+    where: {
+      startTime: Between(startOfDay, endOfDay)
+    },
+    order: {
+      startTime: 'ASC'
+    }
+  });
+}
+
 
   async findAll(): Promise<Event[]> {
     const events = await this.eventRepository.find({

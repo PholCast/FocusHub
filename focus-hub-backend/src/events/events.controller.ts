@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Put, Delete, UseGuards, Request } from '@nestjs/common'
+import { Controller, Get, Post, Param, Body, Put, Delete, UseGuards, Request, Query } from '@nestjs/common'
 import { EventsService } from './events.service'
 import { CreateEventDto } from './dto/create-event.dto'
 import { UpdateEventDto } from './dto/update-event.dto'
@@ -36,5 +36,10 @@ export class EventsController {
   @Delete(':id')
   remove(@Param('id') id: number): Promise<void> {
     return this.eventsService.remove(id)
+  }
+
+  @Get('by-date')
+  getEventsByDate(@Query('date') date: string): Promise<Event[]> {
+    return this.eventsService.findByDate(date);
   }
 }

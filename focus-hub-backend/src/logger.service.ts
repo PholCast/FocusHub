@@ -64,7 +64,7 @@ export class MyLogger implements LoggerService {
   private logger: winston.Logger;
 
   constructor(private configService: ConfigService) {
-    const logstashHost = this.configService.get<string>('LOGSTASH_HOST', 'logstash');
+    const logstashHost = this.configService.get<string>('LOGSTASH_HOST', 'localhost');
     const logstashPort = parseInt(this.configService.get<string>('LOGSTASH_PORT', '5000'), 10);
 
     console.log(`[MyLogger Init] Intentando conectar a Logstash en: ${logstashHost}:${logstashPort}`);

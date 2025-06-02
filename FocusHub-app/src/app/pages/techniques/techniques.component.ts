@@ -2,13 +2,7 @@ import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Ren
 import { interval, Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NavComponent } from '../../shared/components/nav/nav.component';
-
-interface Technique {
-  name: string;
-  workTime: number;
-  shortBreak: number;
-  longBreak: number;
-}
+import { Technique } from '../../shared/interfaces/technique.interface';
 
 @Component({
   selector: 'app-techniques',

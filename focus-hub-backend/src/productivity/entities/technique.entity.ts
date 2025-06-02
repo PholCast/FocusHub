@@ -11,16 +11,16 @@ export class Technique {
   name: string;
 
   @Column({ type: 'int', nullable: false })
-  workDuration: number;
+  workTime: number;
 
   @Column({ type: 'int', nullable: false })
-  breakDuration: number;
+  shortBreak: number;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'int', nullable: true })
-  longBreakDuration?: number;
+  longBreak?: number;
 
   @ManyToOne(() => User, (user) => user.techniques, { nullable: true })
   @JoinColumn({ name: 'user_id' })

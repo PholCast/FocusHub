@@ -11,9 +11,6 @@ export class Category {
   @Column({ length: 100, nullable: false, unique: true })
   name: string;
 
-
-
-
   @CreateDateColumn()
   createdAt: Date;
 

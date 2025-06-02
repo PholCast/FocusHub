@@ -6,6 +6,8 @@ import { User } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
 import { MyLogger } from '../logger.service';
 import { JwtService } from '@nestjs/jwt';
+import { LoginDto } from './dto/login-request.dto';
+import { SignUpDto } from './dto/sign-up-request.dto';
 
 
 @Injectable()
@@ -19,7 +21,7 @@ export class AuthService {
 
   ) { }
 
-  async register(userData: { email: string; password: string; name: string; lastname?: string }): Promise<User> {
+  async register(userData: SignUpDto): Promise<User> {
     const existingUser = await this.usersRepository.findOne({ where: { email: userData.email } });
     if (existingUser) {
       throw new Error('Email already registered');
@@ -35,9 +37,6 @@ export class AuthService {
       lastname: userData.lastname,
       themePreference: 'light',
       soundEnabled: true,
-
-
-
     });
 
     this.logger.log(`Creating user...${newUser.email} - ${newUser.name}`);

@@ -3,25 +3,25 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user.entity';
-import { AmbientSound } from '../media/ambient-sound.entity';
+import { AmbientSound } from '../ambient-sound/ambient-sound.entity';
 import { Category } from 'src/categories/category.entity';
 import { Event } from '../events/event.entity';
 import { Technique } from 'src/productivity/entities/technique.entity';
 import { FocusSession } from 'src/productivity/entities/focus-session.entity';
 import { Task } from 'src/tasks/task.entity';
-import { MediaModule } from '../media/media.module';  Module
+import { AmbientSoundModule } from '../ambient-sound/ambient-sound.module';
 import { CategoriesModule } from 'src/categories/categories.module';
 import { EventsModule } from 'src/events/events.module';
 import { ProductivityModule } from 'src/productivity/productivity.module';
 import { TasksModule } from 'src/tasks/tasks.module';
-import { MediaService } from 'src/media/media.service';
+import { AmbientSoundService } from 'src/ambient-sound/ambient-sound.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),MediaModule
+    TypeOrmModule.forFeature([User]),AmbientSoundModule
   ],
   controllers: [UsersController],
-  providers: [UsersService,MediaService],
+  providers: [UsersService],
   exports: [UsersService],
 })
 export class UsersModule {}

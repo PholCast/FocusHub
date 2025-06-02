@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MediaModule } from './media/media.module';
+import { AmbientSoundModule } from './ambient-sound/ambient-sound.module';
 import { CategoriesModule } from './categories/categories.module';
 import { EventsModule } from './events/events.module';
 import { RemindersModule } from './reminders/reminders.module';
@@ -19,17 +19,17 @@ import { MyLogger } from './logger.service';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'mysql_db',
+      host: 'localhost',
       port: 3306,
-      username: 'testuser',
-      password: 'testuser123',
-      database: 'focus_hub_database',
+      username: 'root',
+      password: '1234',
+      database: 'focushubdatabase',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       logging: true,
     }),
     UsersModule,
-    MediaModule,
+    AmbientSoundModule,
     CategoriesModule,
     EventsModule,
     RemindersModule,

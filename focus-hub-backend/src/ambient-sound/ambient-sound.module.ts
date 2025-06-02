@@ -1,6 +1,6 @@
 import { Module} from '@nestjs/common';
-import { MediaService } from './media.service';
-import { MediaController } from './media.controller';
+import { AmbientSoundService } from './ambient-sound.service';
+import { AmbientSoundController } from './ambient-sound.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AmbientSound } from './ambient-sound.entity';
 import { User } from 'src/users/user.entity';
@@ -10,8 +10,8 @@ import { UsersModule } from 'src/users/users.module';
   imports: [
     TypeOrmModule.forFeature([AmbientSound])  
   ],
-  providers: [MediaService],
-  controllers: [MediaController],
-  exports: [MediaService],
+  providers: [AmbientSoundService],
+  controllers: [AmbientSoundController],
+  exports: [AmbientSoundService],
 })
-export class MediaModule {}
+export class AmbientSoundModule {}

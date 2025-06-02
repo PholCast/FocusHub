@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, WritableSignal, signal, effect  } from '@angular/core';
 import { TaskService } from '../../services/task.service';
 import { EventService } from '../../services/event.service';
 import { Task } from '../../shared/interfaces/task.interface';
@@ -16,11 +16,9 @@ import { NavComponent } from '../../shared/components/nav/nav.component';
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.css']
 })
-export class CalendarComponent implements OnInit, OnDestroy {
+export class CalendarComponent implements OnInit {
   currentDate: Date = new Date();
   selectedDate: Date | null = null;
-  events: CalendarEvent[] = [];
-  tasks: Task[] = [];
   showEventForm = false;
   showTaskForm = false;
   viewMode: 'month' | 'week' | 'day' = 'month';
@@ -33,19 +31,16 @@ export class CalendarComponent implements OnInit, OnDestroy {
   startMinute: number = 0;
   endHour: number = 10;
   endMinute: number = 0;
-  timeError: boolean = false;
+  timeError = false;
   availableMinutes: number[] = [0, 30];
 
 
-  newEvent: CalendarEvent = {
+  newEvent: Partial<CalendarEvent> = {
     id: 0,
     title: '',
     startTime: '',
-    endTime: '', 
-    description: '',
-    createdAt: null,
-    user_id: null, 
-    category_id: null
+    endTime: '',
+    description: ''
   };
 
   newTask: Partial<Task> = {
@@ -53,32 +48,22 @@ export class CalendarComponent implements OnInit, OnDestroy {
     dueDate: ''
   };
 
-  private eventsSubscription!: Subscription;
-
   constructor(
     private taskService: TaskService,
     private eventService: EventService
-  ) { }
+  ) {  }
+
 
   ngOnInit(): void {
+    // Simplemente invocar carga (fetch) en ambos servicios
+    this.eventService.fetchEvents();
+    this.taskService.loadTasks();
 
-    this.eventsSubscription = this.eventService.events$.subscribe(events => {
-      this.events = events;
-
-
-      console.log('Events updated:', this.events);
-    });
-
-    this.loadTasks();
-
+    // Inicializaciones locales
     this.initFormDates();
     this.updateWeekDays();
-  }
 
-  ngOnDestroy(): void {
-    if (this.eventsSubscription) {
-      this.eventsSubscription.unsubscribe();
-    }
+    // Los signals de events y tasks los usarás directamente en el template o en otras partes
   }
 
   isTask(item: Task | CalendarEvent): item is Task {
@@ -88,14 +73,9 @@ export class CalendarComponent implements OnInit, OnDestroy {
 
 
   loadTasks(): void {
-    this.tasks = this.taskService.getTasks();
-
-    this.tasks.sort((a, b) => {
-      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-      return dateA - dateB;
-    });
+    this.taskService.loadTasks(); // la actualización ocurre internamente en el service
   }
+
 
 
   initFormDates(): void {
@@ -106,9 +86,6 @@ export class CalendarComponent implements OnInit, OnDestroy {
     this.endHour = 10;
     this.endMinute = 0;
   }
-
-
-
 
   isFirstHourOfEvent(event: CalendarEvent, date: Date, hour: number): boolean {
     const eventStart = new Date(event.startTime);
@@ -132,8 +109,8 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
 
-  updateWeekDays(): void {
-    const currentDayOfWeek = this.currentDate.getDay();
+  updateWeekDays(): void {  // accede al valor de la signal
+    const currentDayOfWeek = (this.currentDate).getDay();
     const startOfWeek = new Date(this.currentDate);
     startOfWeek.setDate(startOfWeek.getDate() - currentDayOfWeek);
     startOfWeek.setHours(0, 0, 0, 0);
@@ -172,15 +149,14 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
 
-  getDaysInMonth(): Date[] {
-    const year = this.currentDate.getFullYear();
-    const month = this.currentDate.getMonth();
+  getDaysInMonth(): Date[] { // accede al valor de la signal
+    const year = (this.currentDate).getFullYear();
+    const month = (this.currentDate).getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = new Date(year, month, 1);
     const startingDay = firstDayOfMonth.getDay();
 
     const days: Date[] = [];
-
 
 
     const prevMonthLastDay = new Date(year, month, 0).getDate();
@@ -240,38 +216,35 @@ export class CalendarComponent implements OnInit, OnDestroy {
     });
 
   }
-
-
+  
 
   getEventsForDate(date: Date): (CalendarEvent | Task)[] {
-
     const dateStr = date.toISOString().split('T')[0];
+    const allEvents = this.eventService.events(); 
+    const allTasks = this.taskService.tasks(); 
 
+    const timedEvents = allEvents.filter((event: CalendarEvent) =>
+      event.startTime && event.startTime.split('T')[0] === dateStr
+    );
 
-    const timedEvents = this.events.filter(event => event.startTime && event.startTime.split('T')[0] === dateStr);
-
-
-    const tasksWithDueDate = this.tasks.filter(task => task.dueDate && task.dueDate.split('T')[0] === dateStr);
-
+    const tasksWithDueDate = allTasks.filter((task: Task) =>
+      task.dueDate && task.dueDate.split('T')[0] === dateStr
+    );
 
     const combinedItems: (CalendarEvent | Task)[] = [...timedEvents, ...tasksWithDueDate];
-
 
     combinedItems.sort((a, b) => {
       const aIsTask = this.isTask(a);
       const bIsTask = this.isTask(b);
 
-
       if (aIsTask && !bIsTask) return 1;
       if (!aIsTask && bIsTask) return -1;
-
 
       if (aIsTask && bIsTask) {
         const dateA = (a as Task).dueDate ? new Date((a as Task).dueDate!).getTime() : Infinity;
         const dateB = (b as Task).dueDate ? new Date((b as Task).dueDate!).getTime() : Infinity;
         return dateA - dateB;
       }
-
 
       if (!aIsTask && !bIsTask) {
         const dateA = new Date((a as CalendarEvent).startTime).getTime();
@@ -282,49 +255,54 @@ export class CalendarComponent implements OnInit, OnDestroy {
       return 0;
     });
 
-
     return combinedItems;
   }
 
 
+
+  
   getTimedEventsForDate(date: Date): CalendarEvent[] {
     const dateStr = date.toISOString().split('T')[0];
+    const allEvents = this.eventService.events(); 
 
 
-    return this.events.filter(event => event.startTime && event.startTime.split('T')[0] === dateStr && event.startTime.includes('T'));
+    return allEvents.filter((event: CalendarEvent) =>
+      event.startTime &&
+      event.startTime.split('T')[0] === dateStr &&
+      event.startTime.includes('T')
+    );
   }
-
 
   getTasksWithDueDateForDate(date: Date): Task[] {
     const dateStr = date.toISOString().split('T')[0];
+    const allTasks = this.taskService.tasks(); 
 
-    return this.tasks.filter(task => task.dueDate && task.dueDate.split('T')[0] === dateStr);
+    return allTasks.filter((task: Task) =>
+      task.dueDate && task.dueDate.split('T')[0] === dateStr
+    );
   }
-
-
-
-
-
 
   getEventsForHour(date: Date, hour: number): CalendarEvent[] {
     const targetYear = date.getFullYear();
     const targetMonth = date.getMonth();
     const targetDay = date.getDate();
 
-    return this.events.filter(event => {
+    const allEvents = this.eventService.events(); 
+
+    return allEvents.filter((event: CalendarEvent) => {
       if (!event.startTime) return false;
 
       const eventStart = new Date(event.startTime);
       const eventYear = eventStart.getFullYear();
       const eventMonth = eventStart.getMonth();
       const eventDay = eventStart.getDate();
-      const eventHour = eventStart.getHours();
-
-
-      return eventYear === targetYear &&
+      const eventHour = eventStart.getHours(); 
+      return (
+        eventYear === targetYear &&
         eventMonth === targetMonth &&
         eventDay === targetDay &&
-        eventHour === hour;
+        eventHour === hour
+      );
     });
   }
 
@@ -335,6 +313,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
 
     return `${(minutes / 60) * 100}%`;
   }
+
 
   getEventHeight(event: CalendarEvent): string {
     const start = new Date(event.startTime);
@@ -350,45 +329,48 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
   updateEventTimes(): void {
-
     if (!this.eventDate || typeof this.eventDate !== 'string') {
-        this.timeError = true;
-        return;
+      this.timeError = true;
+      return;
     }
 
     const dateParts = this.eventDate.split('-').map(part => parseInt(part, 10));
     if (dateParts.some(isNaN) || dateParts.length !== 3) {
-        this.timeError = true;
-        return;
+      this.timeError = true;
+      return;
     }
 
     const year = dateParts[0];
     const monthIndex = dateParts[1] - 1;
     const day = dateParts[2];
 
-
     if (this.endHour === 23 && this.endMinute !== 59) {
-        this.endMinute = 59;
+      this.endMinute = 59;
     }
 
     const start = new Date(year, monthIndex, day, this.startHour, this.startMinute);
     let end = new Date(year, monthIndex, day, this.endHour, this.endMinute);
 
-
     if (this.endHour === 23 && this.endMinute === 59) {
-        end.setHours(23, 59, 59, 999);
+      end.setHours(23, 59, 59, 999);
     }
 
-
     if (end <= start) {
-        this.timeError = true;
-        return;
+      this.timeError = true;
+      return;
     }
 
     this.timeError = false;
-    this.newEvent.startTime = start.toISOString();
-    this.newEvent.endTime = end.toISOString();
+
+    const updatedEvent = {
+      ...this.newEvent,
+      startTime: start.toISOString(),
+      endTime: end.toISOString()
+    };
+
+    this.newEvent = updatedEvent;
   }
+
 
   openEventForm(date: Date, hour?: number): void {
     this.showTaskForm = false;
@@ -449,7 +431,6 @@ export class CalendarComponent implements OnInit, OnDestroy {
     );
 
     this.newEvent = {
-        id: 0,
         title: '',
         startTime: start.toISOString(),
         endTime: end.toISOString(),
@@ -462,6 +443,8 @@ export class CalendarComponent implements OnInit, OnDestroy {
     this.timeError = false;
     this.showEventForm = true;
   }
+
+
   openTaskForm(date: Date): void {
     this.showEventForm = false;
     this.selectedDate = date;
@@ -497,7 +480,6 @@ export class CalendarComponent implements OnInit, OnDestroy {
   editEvent(event: CalendarEvent): void {
     this.showTaskForm = false;
 
-
     this.newEvent = {
       ...event,
       createdAt: null,
@@ -505,61 +487,64 @@ export class CalendarComponent implements OnInit, OnDestroy {
       category_id: null
     };
 
-    const startDate = new Date(this.newEvent.startTime);
-    const endDate = new Date(this.newEvent.endTime);
-
+    const startDate = new Date(this.newEvent.startTime!);
+    const endDate = new Date(this.newEvent.endTime!);
 
     this.eventDate = formatDate(startDate, 'yyyy-MM-dd', 'en-US');
-
 
     this.startHour = startDate.getHours();
     this.startMinute = startDate.getMinutes();
     this.endHour = endDate.getHours();
     this.endMinute = endDate.getMinutes();
 
-
-
-
     this.timeError = false;
     this.showEventForm = true;
-
-
-
-
 
     this.updateEventTimes();
   }
 
 
   saveEvent(): void {
+    console.log("entra a saveEvent()");
+    const event = this.newEvent;
 
-    if (!this.newEvent.title || !this.newEvent.title.trim()) {
+    // Validar título
+    if (!event.title || !event.title.trim()) {
       alert('El título del evento no puede estar vacío.');
       return;
     }
-    this.newEvent.title = this.newEvent.title.trim();
 
+    // Actualizar título con trim usando set()
+    this.newEvent = {
+      ...event,
+      title: event.title.trim(),
+    };
 
-
-
+    // Validar error de tiempo (leer valor del signal)
     if (this.timeError) {
       alert('La hora de fin debe ser posterior a la hora de inicio y no puede exceder la medianoche del día siguiente.');
       return;
     }
 
-
-    if (this.newEvent.id === 0) {
-      this.eventService.addEvent(this.newEvent);
+    // Si id existe (y es distinto de null o undefined), actualizar; sino, crear nuevo
+    if (event.id) {
+      this.eventService.updateEvent(event);
     } else {
-      this.eventService.updateEvent(this.newEvent);
+      this.eventService.createEvent(event).subscribe({
+        next: () => {
+          this.showEventForm = false;
+        },
+        error: (err) => {
+          console.error('Error al crear evento:', err);
+          alert('No se pudo guardar el evento.');
+        }
+      });
     }
 
-
+    // Ocultar formulario (usar set para signals booleanos)
     this.showEventForm = false;
-
-
-
   }
+
 
 
   deleteEvent(id: number): void {
@@ -582,8 +567,8 @@ export class CalendarComponent implements OnInit, OnDestroy {
       this.updateWeekDays();
     } else {
       this.viewMode = 'month';
-
-      this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), 1);
+      const current = this.currentDate;
+      this.currentDate = new Date(current.getFullYear(), current.getMonth(), 1);
     }
   }
 
@@ -595,17 +580,14 @@ export class CalendarComponent implements OnInit, OnDestroy {
     this.currentDate = new Date(date);
   }
 
+
   prevMonth(): void {
     this.showEventForm = false;
     this.showTaskForm = false;
     this.selectedDate = null;
 
-    this.currentDate = new Date(
-      this.currentDate.getFullYear(),
-      this.currentDate.getMonth() - 1,
-      1
-    );
-
+    const current = this.currentDate;
+    this.currentDate = new Date(current.getFullYear(), current.getMonth() - 1, 1);
   }
 
   nextMonth(): void {
@@ -613,32 +595,32 @@ export class CalendarComponent implements OnInit, OnDestroy {
     this.showTaskForm = false;
     this.selectedDate = null;
 
-    this.currentDate = new Date(
-      this.currentDate.getFullYear(),
-      this.currentDate.getMonth() + 1,
-      1
-    );
-
+    const current = this.currentDate;
+    this.currentDate = new Date(current.getFullYear(), current.getMonth() + 1, 1);
   }
-
 
   prevWeek(): void {
     this.showEventForm = false;
     this.showTaskForm = false;
     this.selectedDate = null;
 
-    this.currentDate.setDate(this.currentDate.getDate() - 7);
+    const current = this.currentDate;
+    const newDate = new Date(current);
+    newDate.setDate(current.getDate() - 7);
+    this.currentDate = newDate;
     this.updateWeekDays();
-
   }
 
   nextWeek(): void {
     this.showEventForm = false;
     this.showTaskForm = false;
     this.selectedDate = null;
-    this.currentDate.setDate(this.currentDate.getDate() + 7);
-    this.updateWeekDays();
 
+    const current = this.currentDate;
+    const newDate = new Date(current);
+    newDate.setDate(current.getDate() + 7);
+    this.currentDate = newDate;
+    this.updateWeekDays();
   }
 
 
@@ -647,13 +629,11 @@ export class CalendarComponent implements OnInit, OnDestroy {
     this.showTaskForm = false;
 
     if (this.selectedDate) {
-
-      this.currentDate = new Date(this.selectedDate);
+      this.currentDate = new Date(this.selectedDate!);
       this.updateWeekDays();
       this.viewMode = 'week';
       this.selectedDate = null;
     } else {
-
       console.warn('Exiting day view but selectedDate is null, defaulting to current week.');
       this.viewMode = 'week';
       this.currentDate = new Date();
@@ -664,24 +644,35 @@ export class CalendarComponent implements OnInit, OnDestroy {
 
 
   saveTaskFromCalendar(): void {
+    const current = this.newTask;
 
-    if (!this.newTask.title || !this.newTask.title.trim()) {
+    // 1) Validar que 'title' exista y no esté vacío
+    if (!current.title || !current.title.trim()) {
       alert('El título de la tarea no puede estar vacío.');
       return;
     }
-    this.newTask.title = this.newTask.title.trim();
 
+    // 2) Actualizar el título con trim usando .set()
+    this.newTask = {
+      ...current,
+      title: current.title.trim()
+    };
 
-    if (this.newTask.dueDate) {
+    // 3) Volver a leer el signal para usar la versión recortada
+    const updated = this.newTask;
+
+    // 4) Validar que 'dueDate' exista
+    if (updated.dueDate) {
+      // Aquí sabemos que updated.dueDate y updated.title no son undefined
       const taskToSave: Task = {
-        id: 0,
-        title: this.newTask.title,
+        id : 0,
+        title: updated.title!,               // ya validamos que existe y no está vacío
         status: 'pending',
         createdAt: new Date().toISOString(),
-        dueDate: this.newTask.dueDate,
+        dueDate: updated.dueDate!,           // ya validamos que existe
         user_id: null
-
       };
+
       this.taskService.addTask(taskToSave);
       this.loadTasks();
       this.showTaskForm = false;
@@ -692,20 +683,20 @@ export class CalendarComponent implements OnInit, OnDestroy {
     }
   }
 
+
   cancelTaskForm(): void {
     this.showTaskForm = false;
     this.newTask = { title: '', dueDate: '' };
     this.selectedDate = null;
   }
 
-
   formatTime(hour: number, minute: number): string {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   }
 
-
   isDateInCurrentMonth(date: Date): boolean {
-    return date.getMonth() === this.currentDate.getMonth() &&
-      date.getFullYear() === this.currentDate.getFullYear();
+    const current = this.currentDate;
+    return date.getMonth() === current.getMonth() &&
+      date.getFullYear() === current.getFullYear();
   }
 }

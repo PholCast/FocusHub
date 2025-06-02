@@ -6,5 +6,5 @@ export interface CalendarEvent {
   description?: string;
   createdAt: string | null;
   user_id: number | null;
-  category_id: number | null;
+  category_id?: number | null;
 }

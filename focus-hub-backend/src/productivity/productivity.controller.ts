@@ -63,8 +63,6 @@ export class ProductivityController {
   }
 
 
-
-
   @Post('focus-sessions')
   @ApiOperation({ summary: 'Create a new focus session' })
   @ApiResponse({ status: 201, description: 'Focus session created successfully' })

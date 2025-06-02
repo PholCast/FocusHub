@@ -1,74 +1,75 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { Task } from '../shared/interfaces/task.interface';
-import { BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { TokenService } from './token.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TaskService {
-  private apiUrl = 'http://localhost:3000/tasks';
-  private _tasks$ = new BehaviorSubject<Task[]>([]);
-  public tasks$ = this._tasks$.asObservable();
+  private readonly apiUrl = 'http://localhost:3000/tasks';
+  private readonly http = inject(HttpClient);
+  private readonly tokenService = inject(TokenService);
 
-  constructor(private http: HttpClient) {
-    this.loadTasks();
+  public tasks = signal<Task[]>([]);
+
+  private getHeaders() {
+    const token = this.tokenService.getToken();
+    return {
+      headers: new HttpHeaders({
+        Authorization: `Bearer ${token}`
+      })
+    };
   }
 
-  
-  private loadTasks(): void {
-    this.http.get<Task[]>(this.apiUrl).subscribe({
-      next: tasks => {
-        tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        this._tasks$.next(tasks);
-      },
-      error: err => console.error('Error cargando tareas', err)
-    });
-  }
-
-  
-  getTasks(): Task[] {
-    return this._tasks$.getValue();
-  }
-
-  
-  addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>): void {
-    this.http.post<Task>(this.apiUrl, task).pipe(
-      tap(() => this.loadTasks())
+  loadTasks(): void {
+    this.http.get<Task[]>(this.apiUrl, this.getHeaders()).pipe(
+      map(tasks => tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())),
+      tap(sorted => this.tasks.set(sorted))
     ).subscribe();
   }
 
-  
-  updateTask(updatedTask: Task): void {
-    this.http.patch<Task>(`${this.apiUrl}/${updatedTask.id}`, updatedTask).pipe(
-      tap(() => this.loadTasks())
-    ).subscribe();
+  addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>): Observable<Task> {
+    return this.http.post<Task>(this.apiUrl, task, this.getHeaders()).pipe(
+      tap(newTask => this.tasks.set([newTask, ...this.tasks()]))
+    );
   }
 
-  
-  toggleComplete(id: number): void {
-    const task = this.getTasks().find(t => t.id === id);
-    if (!task) return;
+  updateTask(updatedTask: Task): Observable<Task> {
+    return this.http.patch<Task>(`${this.apiUrl}/${updatedTask.id}`, updatedTask, this.getHeaders()).pipe(
+      tap(updated => {
+        const updatedList = this.tasks().map(task =>
+          task.id === updated.id ? updated : task
+        );
+        this.tasks.set(updatedList);
+      })
+    );
+  }
 
+  toggleComplete(task: Task): Observable<Task> {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    this.http.patch(`${this.apiUrl}/${id}/status`, { status: newStatus }).pipe(
-      tap(() => this.loadTasks())
-    ).subscribe();
+    return this.http.patch<Task>(`${this.apiUrl}/${task.id}/status`, { status: newStatus }, this.getHeaders()).pipe(
+      tap(updated => {
+        const updatedList = this.tasks().map(t =>
+          t.id === updated.id ? updated : t
+        );
+        this.tasks.set(updatedList);
+      })
+    );
   }
 
-  
-  deleteTask(id: number): void {
-    this.http.delete(`${this.apiUrl}/${id}`).pipe(
-      tap(() => this.loadTasks())
-    ).subscribe();
+  deleteTask(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, this.getHeaders()).pipe(
+      tap(() => {
+        const filtered = this.tasks().filter(task => task.id !== id);
+        this.tasks.set(filtered);
+      })
+    );
   }
 
-  
-  duplicateTask(id: number): void {
-    const original = this.getTasks().find(t => t.id === id);
-    if (!original) return;
-
+  duplicateTask(original: Task): Observable<Task> {
     const duplicated = {
       ...original,
       title: original.title + ' (Copia)',
@@ -79,10 +80,11 @@ export class TaskService {
     delete (duplicated as any).id;
     delete (duplicated as any).createdAt;
 
-    this.addTask(duplicated);
+    return this.addTask(duplicated);
   }
 
-  
+  // -- Categorías y proyectos (persisten localmente) --
+
   getCategories(): string[] {
     const categories = localStorage.getItem('categories');
     return categories ? JSON.parse(categories) : ['Personal', 'Trabajo', 'Estudio'];
@@ -108,18 +110,4 @@ export class TaskService {
       localStorage.setItem('projects', JSON.stringify(projects));
     }
   }
-
-  
-  checkOverdueTasks(): void {
-    const updated: Task[] = this.getTasks().map(task => {
-      if ((task.status === 'pending' || task.status === 'in_progress') &&
-          task.dueDate && new Date(task.dueDate) < new Date()) {
-        return { ...task, status: 'overdue' as const }; 
-      }
-      return task;
-    });
-
-    this._tasks$.next(updated);
-  }
-
 }

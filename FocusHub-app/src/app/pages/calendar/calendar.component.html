@@ -186,7 +186,7 @@
                 [disabled]="timeError || !newEvent.title || !newEvent.title.trim()">
                 Guardar
             </button>
-            <button class="delete-btn" *ngIf="newEvent.id !== 0" (click)="deleteEvent(newEvent.id)">
+            <button class="delete-btn" *ngIf="newEvent.id !== 0" (click)="deleteEvent(newEvent.id!)">
                 Eliminar
             </button>
         </div>
