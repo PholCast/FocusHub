@@ -31,7 +31,7 @@
     </div>
 
     <!-- Tiempo de Concentración -->
-    <div class="card">
+    <!-- <div class="card">
       <h2 class="card-title">Tiempo de Concentración</h2>
       <div class="concentration-stats">
         <div class="concentration-time">
@@ -42,7 +42,20 @@
           Gráfica de Barras<br>(Concentración por horas)
         </div>
       </div>
-    </div>
+    </div> -->
+
+    <!-- Tiempo de Concentración -->
+<!-- Tiempo de Concentración -->
+<div class="card">
+  <h2 class="card-title">Tiempo de Concentración</h2>
+  <div class="concentration-stats">
+    <div class="concentration-time">
+      <div class="time-number">{{ focusTimeToday }}h</div>
+      <div class="time-label">Tiempo total hoy</div>
+    </div> 
+  </div>
+</div>
+
 
     <!-- Técnica Más Usada -->
     <div class="card">
@@ -53,13 +66,12 @@
     </div>
 
     <!-- Sección de Tendencias -->
-            <div class="card trend-section">
+            <!-- <div class="card trend-section">
                 <h2 class="card-title">Análisis de Tendencias</h2>
                 <div class="trend-grid">
                     <div>
                         <h3 style="margin-bottom: 15px; color: #2c3e50;">Promedio Diario/Semanal</h3>
                         <div class="trend-placeholder">
-                            <!-- AQUÍ VA TU GRÁFICA DE TENDENCIA -->
                             Gráfica de Líneas
                             <br>
                             (Tareas completadas por día/semana)
@@ -68,20 +80,49 @@
                     <div>
                         <h3 style="margin-bottom: 15px; color: #2c3e50;">Tendencia de Concentración</h3>
                         <div class="trend-placeholder">
-                            <!-- AQUÍ VA TU GRÁFICA DE TENDENCIA -->
                             Línea de Tendencia
                             <br>
                             (Mejora de concentración en el tiempo)
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
+            <!-- Sección de Tendencias -->
+
+
+<div class="card trend-section concentration-section">
+  <h2 class="card-title">Horas de Concentración</h2>
+  <div class="chart-row">
+    <div class="chart-wrapper bar">
+      <canvas #barChart></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="card trend-section analysis-section">
+  <h2 class="card-title">Análisis de Tendencias</h2>
+  <div class="trend-grid">
+    <div class="trend-column">
+      <h3 class="trend-title">Cumplimiento de tareas</h3>
+      <div class="chart-wrapper">
+        <canvas #lineChart></canvas>
+      </div>
+    </div>
+    <div class="trend-column">
+      <h3 class="trend-title">Tendencia de Concentración</h3>
+      <div class="chart-wrapper">
+        <canvas #trendChart></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
   </div>
 
   <!-- Historial de Sesiones -->
   <div class="sessions-container">
     <h2 class="sessions-title">Historial de Sesiones</h2>
-    @for (session of sessions; track session.id) {
+    @for (session of sessions; track $index) {
     <div class="session-item">
       <div class="session-header" (click)="toggleSession(session)">
         <div>
@@ -92,7 +133,7 @@
       </div>
       <div class="session-content" [class.active]="session.expanded">
         <div class="session-tasks">
-          @for (task of session.focusSessionTasks; track task.name) {
+          @for (task of session.focusSessionTasks; track $index) {
           <div class="task-item">
             <div class="task-status" [style.background]="task.task.status === 'completed' ? '#27ae60' : '#e74c3c'">
               {{ task.task.status === 'completed' ? '✔' : '✗' }}
