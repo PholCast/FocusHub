@@ -198,4 +198,23 @@ export class ProductivityService {
     const focusSessionTask = await this.findOneFocusSessionTask(id);
     await this.focusSessionTaskRepository.remove(focusSessionTask);
   }
+
+  async getUserStats(userId: number): Promise<FocusSession[]> {
+    // Busca sesiones con las relaciones: tareas, técnicas y usuario
+    const sessions = await this.focusSessionRepository.find({
+      where: { user: { id: userId } },
+      relations: [
+        'focusSessionTasks',
+        'focusSessionTasks.task',
+        'technique',
+      ],
+      order: { createdAt: 'DESC' }, 
+    });
+
+    if (!sessions || sessions.length === 0) {
+      throw new NotFoundException('No focus sessions found for this user.');
+    }
+
+    return sessions;
+  }
 }

@@ -6,6 +6,7 @@ import { SignInComponent } from './pages/sign-up/sign-up.component';
 import { LogInComponent } from './pages/log-in/log-in.component';
 import { authGuard } from './shared/guards/auth.guard';
 import { WelcomeComponent } from './pages/welcome/welcome.component';
+import { StatsComponent } from './pages/stats/stats.component';
 
 
 export const routes: Routes = [
@@ -24,6 +25,11 @@ export const routes: Routes = [
   {
     path: 'tasks',
     component: TaskComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'stats',
+    component: StatsComponent,
     canActivate: [authGuard]
   },
   {
