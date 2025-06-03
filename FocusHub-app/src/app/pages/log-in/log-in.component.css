@@ -5,16 +5,13 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: var(--secondary-bg); 
+    background-color: var(--primary-bg); 
     color: var(--text-color); 
     font-family: 'Segoe UI', sans-serif; 
     
     margin-left: -200px; 
 }
 
-main{
-  margin-left: 0 !important;
-}
 .login-container {
     background-color: var(--primary-bg); 
     
@@ -34,7 +31,7 @@ main{
     font-size: 2em; 
 }
 
-.login-form{
+.login-form {
     display: flex;
     flex-direction: column;
 }
@@ -57,7 +54,9 @@ main{
     outline: none; 
 }
 
-
+#color-title-w{
+    color: var(--text-color);
+}
 button.primary {
     padding: 12px 20px;
     color: var(--primary-bg); 
@@ -95,13 +94,12 @@ button.secondary:hover {
     transform: none; 
 }
 
-.login-container p{
+.login-container p {
     margin-top: 20px;
     margin-bottom: 15px;
     font-size: 0.9em;
     color: var(--text-secondary); 
 }
-
 
 .login-container a {
     text-decoration: none;
@@ -112,14 +110,18 @@ button.secondary:hover {
 .login-container a:hover {
     color: #1976D2; 
 }
-
+@media (max-width: 768px) {
+    body {
+        margin-left: 0 !important; 
+    }
+}
 
 @media (max-width: 480px) {
+  
     .login-container {
         padding: 30px 20px; 
         max-width: 95%; 
     }
-
     .login-container h1 {
         font-size: 1.8em; 
         margin-bottom: 25px;

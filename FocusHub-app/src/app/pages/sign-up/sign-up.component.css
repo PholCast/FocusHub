@@ -53,7 +53,9 @@ body {
     box-shadow: 0 0 8px rgba(33, 150, 243, 0.3); 
     outline: none; 
 }
-
+#color-title-w{
+    color: var(--text-color);
+}
 
 button.primary {
     padding: 12px 20px;

@@ -1,0 +1,150 @@
+<app-nav></app-nav>
+<div class="container">
+  <div class="header">
+    <h1>Dashboard de Productividad</h1>
+    <p>Seguimiento de tu rendimiento y concentración</p>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Tareas Completadas -->
+    <div class="card">
+      <h2 class="card-title">Tareas Completadas</h2>
+      <div class="tasks-section">
+        <div class="tasks-completed">
+          <div class="tasks-number">{{ completedToday }}</div>
+          <div class="tasks-label">Completadas hoy</div>
+        </div>
+        <div class="tasks-pending">
+          <div class="pending-number">{{ pendingToday }}</div>
+          <div class="pending-label">Pendientes</div>
+        </div>
+      </div>
+      <div class="progress-container">
+        <div class="progress-label">
+          <span>Progreso del día</span>
+          <span>{{ progressPercent }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="progressPercent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tiempo de Concentración -->
+    <!-- <div class="card">
+      <h2 class="card-title">Tiempo de Concentración</h2>
+      <div class="concentration-stats">
+        <div class="concentration-time">
+          <div class="time-number">{{ focusTimeToday }}h</div>
+          <div class="time-label">Tiempo total hoy</div>
+        </div>
+        <div class="chart-placeholder">
+          Gráfica de Barras<br>(Concentración por horas)
+        </div>
+      </div>
+    </div> -->
+
+    <!-- Tiempo de Concentración -->
+<!-- Tiempo de Concentración -->
+<div class="card">
+  <h2 class="card-title">Tiempo de Concentración</h2>
+  <div class="concentration-stats">
+    <div class="concentration-time">
+      <div class="time-number">{{ focusTimeToday }}h</div>
+      <div class="time-label">Tiempo total hoy</div>
+    </div> 
+  </div>
+</div>
+
+
+    <!-- Técnica Más Usada -->
+    <div class="card">
+      <h2 class="card-title">Técnica Más Usada</h2>
+      <div class="technique-display">
+        <div class="technique-name">{{ mostUsedTechnique }}</div>
+      </div>
+    </div>
+
+    <!-- Sección de Tendencias -->
+            <!-- <div class="card trend-section">
+                <h2 class="card-title">Análisis de Tendencias</h2>
+                <div class="trend-grid">
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">Promedio Diario/Semanal</h3>
+                        <div class="trend-placeholder">
+                            Gráfica de Líneas
+                            <br>
+                            (Tareas completadas por día/semana)
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">Tendencia de Concentración</h3>
+                        <div class="trend-placeholder">
+                            Línea de Tendencia
+                            <br>
+                            (Mejora de concentración en el tiempo)
+                        </div>
+                    </div>
+                </div>
+            </div> -->
+            <!-- Sección de Tendencias -->
+
+
+<div class="card trend-section concentration-section">
+  <h2 class="card-title">Horas de Concentración</h2>
+  <div class="chart-row">
+    <div class="chart-wrapper bar">
+      <canvas #barChart></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="card trend-section analysis-section">
+  <h2 class="card-title">Análisis de Tendencias</h2>
+  <div class="trend-grid">
+    <div class="trend-column">
+      <h3 class="trend-title">Cumplimiento de tareas</h3>
+      <div class="chart-wrapper">
+        <canvas #lineChart></canvas>
+      </div>
+    </div>
+    <div class="trend-column">
+      <h3 class="trend-title">Tendencia de Concentración</h3>
+      <div class="chart-wrapper">
+        <canvas #trendChart></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </div>
+
+  <!-- Historial de Sesiones -->
+  <div class="sessions-container">
+    <h2 class="sessions-title">Historial de Sesiones</h2>
+    @for (session of sessions; track $index) {
+    <div class="session-item">
+      <div class="session-header" (click)="toggleSession(session)">
+        <div>
+          <div class="session-technique">{{ session.technique.name }}</div>
+          <div class="session-info">{{ session.createdAt ? (session.createdAt | date: 'dd/MM/yyyy, HH:mm') : 'Sin fecha' }} | {{session.status === 'completed' ? 'Completada' : 'En progreso' }} | {{ session.focusSessionTasks.length }} tareas</div>
+        </div>
+        <div class="session-arrow" [style.transform]="session.expanded ? 'rotate(90deg)' : 'rotate(0deg)'">▶</div>
+      </div>
+      <div class="session-content" [class.active]="session.expanded">
+        <div class="session-tasks">
+          @for (task of session.focusSessionTasks; track $index) {
+          <div class="task-item">
+            <div class="task-status" [style.background]="task.task.status === 'completed' ? '#27ae60' : '#e74c3c'">
+              {{ task.task.status === 'completed' ? '✔' : '✗' }}
+            </div>
+            <div class="task-name"> {{ task.task.title }} | {{ task.task.description ? task.task.description : 'Sin descripción'  }} </div>
+            <div class="task-time">  {{ task.task.createdAt ? (task.task.createdAt | date: 'dd/MM/yyyy, HH:mm') : 'Sin fecha' }}</div>
+          </div>
+        }
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</div>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards,Request } from '@nestjs/common';
 import { ProductivityService } from './productivity.service';
 import { CreateTechniqueDto } from './dto/create-technique.dto';
 import { UpdateTechniqueDto } from './dto/update-technique.dto';
@@ -7,7 +7,9 @@ import { CreateFocusSessionDto } from './dto/create-focus-session.dto';
 import { UpdateFocusSessionDto } from './dto/update-focus-session.dto';
 import { CreateFocusSessionTaskDto } from './dto/create-focus-session-task.dto';
 import { UpdateFocusSessionTaskDto } from './dto/update-focus-session-task.dto';
+import { AuthGuard } from '@nestjs/passport';
 
+@UseGuards(AuthGuard('jwt'))
 @ApiTags('productivity')
 @Controller('productivity')
 export class ProductivityController {
@@ -144,5 +146,11 @@ export class ProductivityController {
   @ApiResponse({ status: 404, description: 'Focus session task not found' })
   removeFocusSessionTask(@Param('id') id: string) {
     return this.productivityService.removeFocusSessionTask(+id);
+  }
+
+  @Get('stats')
+  async getUserStats(@Request() req) {
+    const userId = req.user.sub;
+    return this.productivityService.getUserStats(userId)
   }
 }
