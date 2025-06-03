@@ -1,7 +1,6 @@
 export interface JwtPayload {
-    id: number;
-    email: string;
-    username: string; //cambiar por name
-    exp: number;
-    iat?: number;
+  sub: number;         // ✅ Este es el userId real
+  email: string;
+  exp: number;
+  iat?: number;
 }

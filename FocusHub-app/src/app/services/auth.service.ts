@@ -49,7 +49,7 @@ export class AuthService {
 
   getCurrentUserId(): number | null {
     const payload = this.tokenService.decodeToken();
-    return payload?.id ?? null;
+    return payload?.sub ?? null; // 
   }
 
   getToken(): string | null {

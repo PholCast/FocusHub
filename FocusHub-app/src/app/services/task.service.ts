@@ -1,6 +1,5 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { Task } from '../shared/interfaces/task.interface';
 import { TokenService } from './token.service';
@@ -14,6 +13,25 @@ export class TaskService {
   private readonly tokenService = inject(TokenService);
 
   public tasks = signal<Task[]>([]);
+
+  public readonly pendingTasks = computed(() =>
+    this.tasks().filter(task =>
+      task.status === 'pending' &&
+      (!task.dueDate || new Date(task.dueDate) >= new Date())
+    )
+  );
+
+  public readonly completedTasks = computed(() =>
+    this.tasks().filter(task => task.status === 'completed')
+  );
+
+  public readonly expiredTasks = computed(() =>
+    this.tasks().filter(task =>
+      (task.status === 'pending' || task.status === 'in_progress' || task.status === 'overdue') &&
+      task.dueDate &&
+      new Date(task.dueDate) < new Date()
+    )
+  );
 
   private getHeaders() {
     const token = this.tokenService.getToken();
@@ -31,45 +49,45 @@ export class TaskService {
     ).subscribe();
   }
 
-  addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>): Observable<Task> {
-    return this.http.post<Task>(this.apiUrl, task, this.getHeaders()).pipe(
+  addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>): void {
+    this.http.post<Task>(this.apiUrl, task, this.getHeaders()).pipe(
       tap(newTask => this.tasks.set([newTask, ...this.tasks()]))
-    );
+    ).subscribe();
   }
 
-  updateTask(updatedTask: Task): Observable<Task> {
-    return this.http.patch<Task>(`${this.apiUrl}/${updatedTask.id}`, updatedTask, this.getHeaders()).pipe(
+  updateTask(updatedTask: Task): void {
+    this.http.patch<Task>(`${this.apiUrl}/${updatedTask.id}`, updatedTask, this.getHeaders()).pipe(
       tap(updated => {
         const updatedList = this.tasks().map(task =>
           task.id === updated.id ? updated : task
         );
         this.tasks.set(updatedList);
       })
-    );
+    ).subscribe();
   }
 
-  toggleComplete(task: Task): Observable<Task> {
+  toggleComplete(task: Task): void {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    return this.http.patch<Task>(`${this.apiUrl}/${task.id}/status`, { status: newStatus }, this.getHeaders()).pipe(
+    this.http.patch<Task>(`${this.apiUrl}/${task.id}/status`, { status: newStatus }, this.getHeaders()).pipe(
       tap(updated => {
         const updatedList = this.tasks().map(t =>
           t.id === updated.id ? updated : t
         );
         this.tasks.set(updatedList);
       })
-    );
+    ).subscribe();
   }
 
-  deleteTask(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`, this.getHeaders()).pipe(
+  deleteTask(id: number): void {
+    this.http.delete<void>(`${this.apiUrl}/${id}`, this.getHeaders()).pipe(
       tap(() => {
         const filtered = this.tasks().filter(task => task.id !== id);
         this.tasks.set(filtered);
       })
-    );
+    ).subscribe();
   }
 
-  duplicateTask(original: Task): Observable<Task> {
+  duplicateTask(original: Task): void {
     const duplicated = {
       ...original,
       title: original.title + ' (Copia)',
@@ -80,7 +98,7 @@ export class TaskService {
     delete (duplicated as any).id;
     delete (duplicated as any).createdAt;
 
-    return this.addTask(duplicated);
+    this.addTask(duplicated);
   }
 
   // -- Categorías y proyectos (persisten localmente) --

@@ -30,7 +30,7 @@ export class TaskComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.tasks = this.taskService.tasks; // ✅ ya es signal del servicio
+    this.tasks = this.taskService.tasks; // ya es signal del servicio
     this.taskService.loadTasks(); // carga inicial
 
     this.categories = this.taskService.getCategories();
@@ -38,19 +38,15 @@ export class TaskComponent implements OnInit {
   }
 
   get pendingTasks() {
-    return this.tasks().filter(task => task.status === 'pending');
+    return this.taskService.pendingTasks();
   }
 
   get completedTasks(): Task[] {
-    return this.tasks().filter(task => task.status === 'completed');
+    return this.taskService.completedTasks();
   }
 
   get expiredTasks(): Task[] {
-    return this.tasks().filter(task =>
-      (task.status === 'pending' || task.status === 'in_progress' || task.status === 'overdue') &&
-      task.dueDate &&
-      new Date(task.dueDate) < new Date()
-    );
+    return this.taskService.expiredTasks();
   }
 
   addTask(title: string): void {
@@ -64,7 +60,7 @@ export class TaskComponent implements OnInit {
         user_id: null
       };
 
-      this.taskService.addTask(newTask).subscribe(); // ya actualiza la signal internamente
+      this.taskService.addTask(newTask); // ya actualiza la signal internamente
     }
   }
 
@@ -72,21 +68,23 @@ export class TaskComponent implements OnInit {
     const task = this.tasks().find(t => t.id === id);
     if (!task) return;
 
-    this.taskService.toggleComplete(task).subscribe(() => {
-      const updated = this.tasks().find(t => t.id === id);
-      if (updated && this.selectedTask?.id === id) {
-        this.selectedTask = { ...updated };
-      }
-    });
+    this.taskService.toggleComplete(task);
+
+    // Actualizar la tarea seleccionada si aplica (se hace justo después porque el service ya actualiza las signals)
+    const updated = this.tasks().find(t => t.id === id);
+    if (updated && this.selectedTask?.id === id) {
+      this.selectedTask = { ...updated };
+    }
   }
 
   deleteTask(id: number): void {
-    this.taskService.deleteTask(id).subscribe(() => {
-      if (this.selectedTask?.id === id) {
-        this.selectedTask = null;
-      }
-    });
+    this.taskService.deleteTask(id);
+
+    if (this.selectedTask?.id === id) {
+      this.selectedTask = null;
+    }
   }
+
 
   openTaskDetails(task: Task): void {
     this.selectedTask = { ...task };
@@ -102,9 +100,8 @@ export class TaskComponent implements OnInit {
         this.selectedTask.status = 'pending';
       }
 
-      this.taskService.updateTask(this.selectedTask).subscribe(() => {
-        this.closeDetails(); // actualiza internamente
-      });
+      this.taskService.updateTask(this.selectedTask);
+      this.closeDetails(); // se cierra sincrónicamente
     }
   }
 
@@ -112,10 +109,10 @@ export class TaskComponent implements OnInit {
     const task = this.tasks().find(t => t.id === id);
     if (!task) return;
 
-    this.taskService.duplicateTask(task).subscribe(() => {
-      this.closeDetails(); // la nueva tarea se añade automáticamente
-    });
+    this.taskService.duplicateTask(task);
+    this.closeDetails(); // también se cierra sincrónicamente
   }
+
 
   confirmDelete(id: number): void {
     if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {

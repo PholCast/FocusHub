@@ -38,30 +38,33 @@ export class ProductivityController {
  }
 
 
-  @Get('techniques/:id')
-  @ApiOperation({ summary: 'Get a technique by ID' })
+  @Get('techniques/:name')
+  @ApiOperation({ summary: 'Get a technique by name' })
   @ApiResponse({ status: 200, description: 'Return the technique' })
   @ApiResponse({ status: 404, description: 'Technique not found' })
-  findOneTechnique(@Param('id') id: string, @Query('userId') userId: number) {
-    return this.productivityService.findOneTechnique(+id, userId);
+  findOneTechnique(@Param('name') name: string, @Query('userId') userId: number) {
+    return this.productivityService.findOneTechniqueByName(name, userId);
   }
 
-  @Patch('techniques/:id')
-  @ApiOperation({ summary: 'Update a technique' })
+  @Patch('techniques/:name')
+  @ApiOperation({ summary: 'Update a technique by name' })
   @ApiResponse({ status: 200, description: 'Technique updated successfully' })
   @ApiResponse({ status: 404, description: 'Technique not found' })
-  updateTechnique(@Param('id') id: string, @Body() updateTechniqueDto: UpdateTechniqueDto, @Query('userId') userId: number) {
-    return this.productivityService.updateTechnique(+id, userId, updateTechniqueDto);
+  updateTechnique(
+    @Param('name') name: string, 
+    @Body() updateTechniqueDto: UpdateTechniqueDto, 
+    @Query('userId') userId: number
+  ) {
+    return this.productivityService.updateTechniqueByName(name, userId, updateTechniqueDto);
   }
 
-  @Delete('techniques/:id')
-  @ApiOperation({ summary: 'Delete a technique' })
+  @Delete('techniques/:name')
+  @ApiOperation({ summary: 'Delete a technique by name' })
   @ApiResponse({ status: 200, description: 'Technique deleted successfully' })
   @ApiResponse({ status: 404, description: 'Technique not found' })
-  removeTechnique(@Param('id') id: string, @Query('userId') userId: number) {
-    return this.productivityService.removeTechnique(+id, userId);
+  removeTechnique(@Param('name') name: string, @Query('userId') userId: number) {
+    return this.productivityService.removeTechniqueByName(name, userId);
   }
-
 
   @Post('focus-sessions')
   @ApiOperation({ summary: 'Create a new focus session' })
@@ -103,8 +106,6 @@ export class ProductivityController {
     return this.productivityService.removeFocusSession(+id, userId);
   }
 
-
-
   @Post('focus-session-tasks')
   @ApiOperation({ summary: 'Create a new focus session task' })
   @ApiResponse({ status: 201, description: 'Focus session task created successfully' })
@@ -144,5 +145,4 @@ export class ProductivityController {
   removeFocusSessionTask(@Param('id') id: string) {
     return this.productivityService.removeFocusSessionTask(+id);
   }
-
 }

@@ -1,9 +1,8 @@
-import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { TokenService } from './token.service';
-import {CalendarEvent} from '../shared/interfaces/calendar-event.interface';
-import { signal } from '@angular/core';
+import { CalendarEvent } from '../shared/interfaces/calendar-event.interface';
+import { tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -11,53 +10,82 @@ import { signal } from '@angular/core';
 export class EventService {
   public events = signal<CalendarEvent[]>([]); // Signal reactiva
 
-  private readonly baseUrl = 'http://localhost:3000/events'; // Ajusta si cambias prefijo
+  private readonly baseUrl = 'http://localhost:3000/events';
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
 
-  
-  createEvent(event: Partial<CalendarEvent>): Observable<CalendarEvent> {
-    const payload = this.mapEventToDto(event);
-    return this.http.post<CalendarEvent>(this.baseUrl, payload, this.getHeaders()).pipe(
-      tap((newEvent) => {
-        const current = this.events();
-        this.events.set([...current, newEvent]); // ✅ Ya no es `any`
-      })
-    );
-  }
-  
   fetchEvents(): void {
-    this.getAllEvents().subscribe((data) => {
-      this.events.set(data);
-    });
+    this.http.get<CalendarEvent[]>(this.baseUrl, this.getHeaders())
+      .subscribe({
+        next: (data) => this.events.set(data),
+        error: (err) => console.error('Error al obtener eventos:', err)
+      });
   }
 
-  getAllEvents(): Observable<CalendarEvent[]> {
-    return this.http.get<CalendarEvent[]>(this.baseUrl, this.getHeaders());
+  createEvent(event: Partial<CalendarEvent>): void {
+    const payload = this.mapEventToDto(event);
+    this.http.post<CalendarEvent>(this.baseUrl, payload, this.getHeaders())
+      .pipe(
+        tap((newEvent) => {
+          const current = this.events();
+          this.events.set([...current, newEvent]);
+        })
+      ).subscribe({
+        error: (err) => console.error('Error al crear evento:', err)
+      });
   }
 
-  getEventById(id: number): Observable<CalendarEvent> {
-    return this.http.get<CalendarEvent>(`${this.baseUrl}/${id}`, this.getHeaders());
-  }
-
-
-
-  updateEvent(event: Partial<CalendarEvent>): Observable<CalendarEvent> {
+  updateEvent(event: Partial<CalendarEvent>): void {
     if (!event.id) {
       throw new Error('El evento debe tener un id para poder actualizarse.');
     }
     const payload = this.mapEventToDto(event);
-    return this.http.put<CalendarEvent>(`${this.baseUrl}/${event.id}`, payload, this.getHeaders());
+    this.http.put<CalendarEvent>(`${this.baseUrl}/${event.id}`, payload, this.getHeaders())
+      .pipe(
+        tap((updatedEvent) => {
+          const updatedList = this.events().map(ev =>
+            ev.id === updatedEvent.id ? updatedEvent : ev
+          );
+          this.events.set(updatedList);
+        })
+      ).subscribe({
+        error: (err) => console.error('Error al actualizar evento:', err)
+      });
   }
 
-  deleteEvent(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`, this.getHeaders());
+  deleteEvent(id: number): void {
+    this.http.delete<void>(`${this.baseUrl}/${id}`, this.getHeaders())
+      .pipe(
+        tap(() => {
+          const updatedList = this.events().filter(ev => ev.id !== id);
+          this.events.set(updatedList);
+        })
+      ).subscribe({
+        error: (err) => console.error('Error al eliminar evento:', err)
+      });
   }
 
-  getEventsByDate(date: string): Observable<CalendarEvent[]> {
-    return this.http.get<CalendarEvent[]>(`${this.baseUrl}/by-date`, {
+  getEventById(id: number): void {
+    this.http.get<CalendarEvent>(`${this.baseUrl}/${id}`, this.getHeaders())
+      .subscribe({
+        next: (event) => {
+          const current = this.events();
+          const updatedList = current.some(e => e.id === event.id)
+            ? current.map(e => (e.id === event.id ? event : e))
+            : [...current, event];
+          this.events.set(updatedList);
+        },
+        error: (err) => console.error('Error al obtener evento por ID:', err)
+      });
+  }
+
+  getEventsByDate(date: string): void {
+    this.http.get<CalendarEvent[]>(`${this.baseUrl}/by-date`, {
       ...this.getHeaders(),
       params: { date }
+    }).subscribe({
+      next: (data) => this.events.set(data),
+      error: (err) => console.error('Error al obtener eventos por fecha:', err)
     });
   }
 

@@ -37,7 +37,6 @@ onLogin(): void {
 
   this.authService.logIn(credentials).subscribe({
     next: (response) => {
-      localStorage.setItem('access_token', response.access_token);
       Swal.fire({
         title: "Éxito",
         text: `Bienvenido, ${response.user.name}!`,

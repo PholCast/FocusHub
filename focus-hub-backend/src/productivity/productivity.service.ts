@@ -51,14 +51,15 @@ export class ProductivityService {
         order: { name: 'ASC' },
     });
   }
-  async findOneTechnique(id: number, userId: number): Promise<Technique> {
-    const technique = await this.techniqueRepository.findOne({ where: { id, user: { id: userId } } });
-    if (!technique) throw new NotFoundException(`Technique with ID ${id} not found`);
+
+  async findOneTechniqueByName(name:string, userId: number): Promise<Technique> {
+    const technique = await this.techniqueRepository.findOne({ where: { name, user: { name: name } } });
+    if (!technique) throw new NotFoundException(`Technique with ID ${name} not found`);
     return technique;
   }
 
-  async updateTechnique(id: number, userId: number, updateTechniqueDto: UpdateTechniqueDto): Promise<Technique> {
-    const technique = await this.findOneTechnique(id, userId);
+  async updateTechniqueByName(name: string, userId: number, updateTechniqueDto: UpdateTechniqueDto): Promise<Technique> {
+    const technique = await this.findOneTechniqueByName(name, userId);
 
     if (updateTechniqueDto.name) {
       const newName = updateTechniqueDto.name.toLowerCase();
@@ -66,10 +67,9 @@ export class ProductivityService {
         where: { name: newName, user: { id: userId } },
       });
 
-      if (existingTechnique && existingTechnique.id !== id) {
+      if (existingTechnique && existingTechnique.name !== name) {
         throw new BadRequestException(`Technique with name '${newName}' already exists for this user`);
       }
-
       updateTechniqueDto.name = newName;
     }
 
@@ -77,12 +77,10 @@ export class ProductivityService {
     return this.techniqueRepository.save(technique);
   }
 
-  async removeTechnique(id: number, userId: number): Promise<void> {
-    const technique = await this.findOneTechnique(id, userId);
+  async removeTechniqueByName(name: string, userId: number): Promise<void> {
+    const technique = await this.findOneTechniqueByName(name, userId);
     await this.techniqueRepository.remove(technique);
   }
-
-
 
   async createFocusSession(createFocusSessionDto: CreateFocusSessionDto): Promise<FocusSession> {
     const { userId, techniqueId, status } = createFocusSessionDto;

@@ -20,7 +20,6 @@ export class TokenService {
   decodeToken(): JwtPayload | null {
     const token = this.getToken();
     if (!token) return null;
-
     try {
       return jwtDecode<JwtPayload>(token);
     } catch (error) {
@@ -41,5 +40,4 @@ export class TokenService {
   clearToken(): void {
     localStorage.removeItem(TOKEN);
   }
-
 }

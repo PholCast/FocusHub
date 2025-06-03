@@ -53,7 +53,6 @@ export class CalendarComponent implements OnInit {
     private eventService: EventService
   ) {  }
 
-
   ngOnInit(): void {
     // Simplemente invocar carga (fetch) en ambos servicios
     this.eventService.fetchEvents();
@@ -70,12 +69,9 @@ export class CalendarComponent implements OnInit {
     return 'status' in item;
   }
 
-
-
   loadTasks(): void {
     this.taskService.loadTasks(); // la actualización ocurre internamente en el service
   }
-
 
 
   initFormDates(): void {
@@ -89,7 +85,6 @@ export class CalendarComponent implements OnInit {
 
   isFirstHourOfEvent(event: CalendarEvent, date: Date, hour: number): boolean {
     const eventStart = new Date(event.startTime);
-
 
     const eventYear = eventStart.getFullYear();
     const eventMonth = eventStart.getMonth();
@@ -148,7 +143,6 @@ export class CalendarComponent implements OnInit {
     }
   }
 
-
   getDaysInMonth(): Date[] { // accede al valor de la signal
     const year = (this.currentDate).getFullYear();
     const month = (this.currentDate).getMonth();
@@ -157,7 +151,6 @@ export class CalendarComponent implements OnInit {
     const startingDay = firstDayOfMonth.getDay();
 
     const days: Date[] = [];
-
 
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startingDay - 1; i >= 0; i--) {
@@ -503,44 +496,30 @@ export class CalendarComponent implements OnInit {
     this.updateEventTimes();
   }
 
-
   saveEvent(): void {
     console.log("entra a saveEvent()");
     const event = this.newEvent;
-
     // Validar título
     if (!event.title || !event.title.trim()) {
       alert('El título del evento no puede estar vacío.');
       return;
     }
-
     // Actualizar título con trim usando set()
     this.newEvent = {
       ...event,
       title: event.title.trim(),
     };
-
     // Validar error de tiempo (leer valor del signal)
     if (this.timeError) {
       alert('La hora de fin debe ser posterior a la hora de inicio y no puede exceder la medianoche del día siguiente.');
       return;
     }
-
     // Si id existe (y es distinto de null o undefined), actualizar; sino, crear nuevo
     if (event.id) {
       this.eventService.updateEvent(event);
     } else {
-      this.eventService.createEvent(event).subscribe({
-        next: () => {
-          this.showEventForm = false;
-        },
-        error: (err) => {
-          console.error('Error al crear evento:', err);
-          alert('No se pudo guardar el evento.');
-        }
-      });
+      this.eventService.createEvent(event);
     }
-
     // Ocultar formulario (usar set para signals booleanos)
     this.showEventForm = false;
   }
@@ -651,13 +630,11 @@ export class CalendarComponent implements OnInit {
       alert('El título de la tarea no puede estar vacío.');
       return;
     }
-
     // 2) Actualizar el título con trim usando .set()
     this.newTask = {
       ...current,
       title: current.title.trim()
     };
-
     // 3) Volver a leer el signal para usar la versión recortada
     const updated = this.newTask;
 
