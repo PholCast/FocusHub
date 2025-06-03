@@ -10,13 +10,13 @@
 }
 
 .header h1 {
-    color: #2c3e50;
+    color: var(--text-title);
     font-size: 2.5rem;
     margin-bottom: 10px;
 }
 
 .header p {
-    color: #7f8c8d;
+    color: var(--accent-color);
     font-size: 1.1rem;
 }
 
@@ -28,7 +28,7 @@
 }
 
 .card {
-    background: white;
+    background: var(--card-background);
     border-radius: 12px;
     padding: 25px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -43,7 +43,7 @@
 .card-title {
     font-size: 1.3rem;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--text-title);
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -78,7 +78,7 @@
 }
 
 .tasks-label {
-    color: #7f8c8d;
+    color: var(--tasks-label);
     font-size: 0.9rem;
 }
 
@@ -94,7 +94,7 @@
 }
 
 .pending-label {
-    color: #7f8c8d;
+    color: var(--tasks-label);
     font-size: 0.9rem;
 }
 
@@ -108,7 +108,7 @@
     justify-content: space-between;
     margin-bottom: 8px;
     font-size: 0.9rem;
-    color: #7f8c8d;
+    color: var(--tasks-label);
 }
 
 .progress-bar {
@@ -149,7 +149,7 @@
 }
 
 .time-label {
-    color: #7f8c8d;
+    color: var(--tasks-label);
     font-size: 0.9rem;
 }
 
@@ -234,7 +234,7 @@
 /* Estilo de encabezados internos */
 .trend-title {
     margin-bottom: 15px;
-    color: #2c3e50;
+    color: var(--text-title);
 }
 
 /* Ajuste de tamaño para los gráficos */
@@ -260,7 +260,7 @@
 
 .sessions-title {
     font-size: 1.5rem;
-    color: #2c3e50;
+    color: var(--text-title);
     margin-bottom: 20px;
     text-align: center;
 }
@@ -276,7 +276,7 @@
 
 .session-header {
     padding: 20px;
-    background: linear-gradient(135deg, #2196F3 0%, #64b5f6 100%);
+    background: var(--session-header-background);
     /* Gradiente inicial con azul */
     color: white;
     cursor: pointer;
@@ -310,7 +310,7 @@
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
-    background: #f8f9fa;
+    background: var(--session-content-background);
 }
 
 .session-content.active {
@@ -347,11 +347,11 @@
 
 .task-name {
     flex: 1;
-    color: #2c3e50;
+    color: var(--text-title);
 }
 
 .task-time {
-    color: #7f8c8d;
+    color: var(--tasks-label);
     font-size: 0.9rem;
 }
 

@@ -15,6 +15,11 @@
     --border-week: #eee;
     --background-color-hover: #f9f9f973;
     --background-color-hover-claro: #f9f9f900;
+    --tasks-label: #7f8c8d;
+    --card-background:white;
+    --session-header-background:linear-gradient(135deg, #2196F3 0%, #64b5f6 100%);
+    --session-content-background:#f8f9fa;
+    /* 252525 f8f9fa*/
 }
 
 [data-theme="dark"] {
@@ -34,6 +39,10 @@
     --border-week: #1E1E1E;
     --background-color-hover: #96969605;
     --background-color-hover-claro: #96969642;
+    --tasks-label: #b7b7b7;
+    --card-background:linear-gradient(145deg, #2a2a2a 0%, #353535 100%);
+    --session-header-background:linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    --session-content-background:#252525
 }
 
 body {

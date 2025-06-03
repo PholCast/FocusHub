@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, ViewChild, OnInit, OnDestroy} from '@angular/core';
 import { NavComponent } from '../../shared/components/nav/nav.component';
 import { StatsService } from '../../services/stats.service';
 import { CommonModule } from '@angular/common';
@@ -10,7 +10,7 @@ import Chart from 'chart.js/auto';
   templateUrl: './stats.component.html',
   styleUrl: './stats.component.css'
 })
-export class StatsComponent {
+export class StatsComponent implements OnInit, OnDestroy {
 
   @ViewChild('barChart') barChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('lineChart') lineChartRef!: ElementRef<HTMLCanvasElement>;
@@ -20,6 +20,7 @@ export class StatsComponent {
   lineChart!: Chart;
   trendChart!: Chart;
 
+  private themeObserver!: MutationObserver;
   statsService = inject(StatsService);
   sessions: any[] = [];
 
@@ -41,6 +42,101 @@ export class StatsComponent {
       this.createCharts();
 
     });
+
+    // 🔍 Observa cambios en el atributo data-theme
+  this.themeObserver = new MutationObserver(mutations => {
+    for (const mutation of mutations) {
+      if (
+        mutation.type === 'attributes' &&
+        mutation.attributeName === 'data-theme'
+      ) {
+        this.updateChartThemes();
+      }
+    }
+  });
+
+  this.themeObserver.observe(document.documentElement, {
+    attributes: true
+  });
+  }
+
+  ngOnDestroy(): void {
+  if (this.barChart) {
+    this.barChart.destroy();
+  }
+  if (this.lineChart) {
+    this.lineChart.destroy();
+  }
+  if (this.trendChart) {
+    this.trendChart.destroy();
+  }
+  if (this.themeObserver) this.themeObserver.disconnect(); // 👈
+}
+
+  private updateChartThemes(): void {
+  this.createCharts();
+}
+  private getChartColors() {
+    const theme = localStorage.getItem('theme') || 'light';
+    if (theme === 'dark') {
+      return {
+        text: '#FFFFFF',
+        grid: '#444',
+        bar: 'rgba(100, 181, 246, 0.7)',
+        lineBorder: 'rgba(255, 138, 128, 0.8)',
+        lineBg: 'rgba(255, 138, 128, 0.3)',
+        trendBorder: 'rgba(129, 212, 250, 0.8)',
+        trendBg: 'rgba(129, 212, 250, 0.3)',
+      };
+    } else {
+      return {
+        text: '#333333',
+        grid: '#ddd',
+        bar: 'rgba(54, 162, 235, 0.7)',
+        lineBorder: 'rgba(255, 99, 132, 0.8)',
+        lineBg: 'rgba(255, 99, 132, 0.3)',
+        trendBorder: 'rgba(75, 192, 192, 0.8)',
+        trendBg: 'rgba(75, 192, 192, 0.3)',
+      };
+    }
+  }
+
+  private getChartOptions(xLabel: string, yLabel: string): any {
+    const colors = this.getChartColors();
+    return {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: yLabel,
+            color: colors.text,
+          },
+          ticks: { color: colors.text },
+          grid: { color: colors.grid }
+        },
+        x: {
+          title: {
+            display: true,
+            text: xLabel,
+            color: colors.text,
+          },
+          ticks: { color: colors.text },
+          grid: { color: colors.grid }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: colors.text
+          }
+        },
+        title: {
+          color: colors.text
+        }
+      }
+    };
   }
 
   private createCharts(): void {
@@ -76,13 +172,7 @@ export class StatsComponent {
           backgroundColor: 'rgba(54, 162, 235, 0.7)'
         }]
       },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Horas' } },
-          x: { title: { display: true, text: 'Técnica' } }
-        }
-      }
+      options: this.getChartOptions('Técnica', 'Horas')
     });
   }
 
@@ -128,13 +218,7 @@ export class StatsComponent {
           pointRadius: 5
         }]
       },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Cantidad de tareas' } },
-          x: { title: { display: true, text: 'Fecha' } }
-        }
-      }
+      options: this.getChartOptions('Fecha', 'Cantidad de tareas')
     });
   }
 
@@ -180,13 +264,7 @@ export class StatsComponent {
           pointRadius: 5
         }]
       },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Horas' } },
-          x: { title: { display: true, text: 'Fecha' } }
-        }
-      }
+      options: this.getChartOptions('Fecha', 'Horas')
     });
   }
 
