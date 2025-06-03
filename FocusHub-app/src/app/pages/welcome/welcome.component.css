@@ -70,7 +70,7 @@ h1 {
 }
 
 .tagline {
-  color: var(--text-secondary);
+  color: var(--text-color);
   font-size: 1.3em;
   margin-bottom: 40px;
   line-height: 1.5;

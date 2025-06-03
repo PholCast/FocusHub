@@ -19,7 +19,12 @@ body {
 
 h1 {
   margin: 0;
-  color: #333;
+  color: var(--text-title);
+}
+
+h2 {
+  margin: 0;
+  color: var(--text-color);
 }
 
 .task-container {
@@ -31,7 +36,7 @@ h1 {
 
 .task-list-container {
   flex: 1;
-  background-color: white;
+  background-color: var(--container);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -45,10 +50,11 @@ h1 {
   width: 100%;
   padding: 12px 15px;
   border: none;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-week);
   font-size: 16px;
   box-sizing: border-box;
   outline: none;
+  background-color: var(--background-color-week);
 }
 
 .task-list {
@@ -186,14 +192,14 @@ h1 {
 
 .expandable-section {
   margin-top: 20px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-week);
   padding-top: 15px;
 }
 
 .expand-btn {
   background: none;
   border: none;
-  color: #666;
+  color: var(--text-color);
   cursor: pointer;
   font-size: 14px;
   padding: 5px 0;

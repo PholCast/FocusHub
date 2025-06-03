@@ -3,5 +3,8 @@
     <a [routerLink]="['/calendar']" routerLinkActive="active"> Calendario</a>
     <a [routerLink]="['/techniques']" routerLinkActive="active"> Tecnicas</a>
     <a [routerLink]="['/stats']" routerLinkActive="active">Historial y Estadísticas</a>
+    <button (click)="modetoggle()" class="theme-toggle-button">
+        <i class="fa-solid fa-moon"></i>
+    </button>
     <a (click)="logout()" id="logoutBtn" routerLinkActive="active"> Salir</a>
 </div>
