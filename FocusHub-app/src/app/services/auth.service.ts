@@ -27,6 +27,7 @@ export class AuthService {
       credentials
     ).pipe(
       tap(response => {
+        console.log(response)
         this.tokenService.setToken(response.access_token);
       })
     );

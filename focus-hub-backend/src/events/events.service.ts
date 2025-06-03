@@ -104,14 +104,16 @@ export class EventsService {
 }
 
 
-  async findAll(): Promise<Event[]> {
+  async findAll(userId: number): Promise<Event[]> {
     const events = await this.eventRepository.find({
+      where: { user: { id: userId } }, // <- filtramos por usuario
       relations: ['user', 'category'],
       order: { startTime: 'ASC' },
     });
 
     return events;
   }
+
 
   async update(id: number, dto: UpdateEventDto, userId: number): Promise<Event> {
     console.log('si llega al update del backend');
@@ -123,9 +125,6 @@ export class EventsService {
 
     console.log('userId del token:', userId);
     console.log('userId del evento:', event.user?.id);
-
-
-
 
 
     if ('categoryId' in dto) {

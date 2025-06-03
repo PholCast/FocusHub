@@ -13,14 +13,17 @@ export class EventsController {
 
   @Post()
   create(@Body() dto: CreateEventDto, @Request() req): Promise<Event> {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
+    console.log("USERID:", req.user.userId)
     return this.eventsService.create(dto, userId);
   }
 
   @Get()
-  findAll(): Promise<Event[]> {
-    return this.eventsService.findAll()
+  findAll(@Request() req): Promise<Event[]> {
+    const userId = req.user.userId;
+    return this.eventsService.findAll(userId);
   }
+
 
   @Get(':id')
   findOne(@Param('id') id: number): Promise<Event> {
@@ -29,7 +32,7 @@ export class EventsController {
 
   @Put(':id')
   update(@Param('id') id: number, @Body() dto: UpdateEventDto, @Request() req): Promise<Event> {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     return this.eventsService.update(id, dto, userId)
   }
 

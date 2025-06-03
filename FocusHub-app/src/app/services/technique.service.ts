@@ -39,6 +39,7 @@ export class TechniqueService {
   private tokenService = inject(TokenService);
 
   private getUserId(): number | null {
+    console.log("ID CON EL SUB: ",this.tokenService.decodeToken()?.sub);
     return this.tokenService.decodeToken()?.sub ?? null;
   }
 

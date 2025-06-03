@@ -150,7 +150,7 @@ export class ProductivityController {
 
   @Get('stats')
   async getUserStats(@Request() req) {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     return this.productivityService.getUserStats(userId)
   }
 }
