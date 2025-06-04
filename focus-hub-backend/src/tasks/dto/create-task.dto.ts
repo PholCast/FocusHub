@@ -39,7 +39,7 @@ export class CreateTaskDto {
   })
   @IsEnum(['Alta', 'Media', 'Baja'])
   @IsOptional()
-  priority?:'Low' | 'Medium' | 'High';
+  priority?:'Baja' | 'Media' | 'Alta';
 
   @ApiProperty({
     description: 'Current status of the task',

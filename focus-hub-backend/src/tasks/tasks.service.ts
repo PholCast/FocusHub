@@ -47,7 +47,6 @@ export class TasksService {
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-
     const task = new Task();
     task.title = createTaskDto.title;
     task.description = createTaskDto.description;
@@ -58,6 +57,7 @@ export class TasksService {
 
 
     if (createTaskDto.categoryId) {
+      console.log("intentado asignarle la categoria", createTaskDto.categoryId)
       const category = await this.categoryRepository.findOne({
         where: { id: createTaskDto.categoryId, user: { id: userId } },
       });

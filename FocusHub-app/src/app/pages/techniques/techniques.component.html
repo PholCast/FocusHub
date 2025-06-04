@@ -8,7 +8,7 @@
                     <option value="pomodoro">Pomodoro (25/5/15)</option>
                     <option value="5217">Técnica 52/17</option>
                     <option value="9020">Técnica 90/20</option>
-                    </select>
+                </select>
                 <button (click)="showNewTechniqueModal()" class="btn-add">+ Nueva Técnica</button>
             </div>
         </header>
@@ -20,7 +20,7 @@
                 @if(this.currentTechnique.longBreak != 0){
                 <button (click)="setActiveTab(2)" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
                 }@else{
-                    <button disabled style="opacity: 0.5;" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button> 
+                <button disabled style="opacity: 0.5;" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
                 }
             </div>
 
@@ -39,20 +39,17 @@
             <div class="associated-tasks">
                 <h3>Tareas Asociadas</h3>
                 <div class="tasks-list">
-                    <div class="task-item">
-                        <input type="checkbox" id="task1">
-                        <label for="task1">Completar informe de proyecto</label>
-                    </div>
-                    <div class="task-item">
-                        <input type="checkbox" id="task2">
-                        <label for="task2">Revisar documentación</label>
-                    </div>
-                    <div class="task-item">
-                        <input type="checkbox" id="task3">
-                        <label for="task3">Preparar presentación</label>
-                    </div>
+                    @for (task of associatedTasks(); track task.id) {
+                        <div class="task-item">
+                            <input type="checkbox" [id]="'associated-task-' + task.id" [checked]="task.status === 'completed'"  (change)="toggleAssociatedTaskCompletion(task)">
+                            <label [for]="'associated-task-' + task.id">{{ task.title }}</label>
+                            <button class="remove-associated-task-btn" (click)="removeAssociatedTask(task.id)">&times;</button>
+                        </div>
+                    } @empty {
+                        <p class="no-tasks-message">No hay tareas asociadas aún. ¡Añade algunas para empezar!</p>
+                    }
                 </div>
-                <button class="btn-add-task">+ Añadir Tarea</button>
+                <button class="btn-add-task" (click)="showSelectTaskModal()">+ Añadir Tarea</button>
             </div>
         </main>
 
@@ -60,28 +57,6 @@
             <div class="modal-content">
                 <span class="close-modal" (click)="hideNewTechniqueModal()">&times;</span>
                 <h2>Crear Nueva Técnica</h2>
-                <!-- <form #newTechniqueForm="ngForm" (ngSubmit)="saveNewTechnique()">
-                    <div class="form-group">
-                        <label for="technique-name">Nombre de la técnica</label>
-                        <input type="text" id="technique-name" name="techniqueName" [(ngModel)]="newTechniqueName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="work-duration">Duración del tiempo de trabajo (minutos)</label>
-                        <input type="number" id="work-duration" name="workDuration" [(ngModel)]="newTechniqueWorkDuration" min="1" max="120" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="short-break">Duración del descanso corto (minutos)</label>
-                        <input type="number" id="short-break" name="shortBreak" [(ngModel)]="newTechniqueShortBreak" min="1" max="30" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="long-break">Duración del descanso largo (minutos, opcional)</label>
-                        <input type="number" id="long-break" name="longBreak" [(ngModel)]="newTechniqueLongBreak" min="5" max="60">
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-cancel" (click)="hideNewTechniqueModal()">Cancelar</button>
-                        <button type="submit" class="btn-save" [disabled]="newTechniqueForm.invalid">Guardar</button>
-                    </div>
-                </form> -->
                 <form [formGroup]="newTechniqueForm" (ngSubmit)="saveNewTechnique()" #newTechniqueFormElement>
                     <div class="form-group">
                         <label for="technique-name">Nombre de la técnica</label>
@@ -116,6 +91,34 @@
                         <button type="submit" class="btn-save" [disabled]="newTechniqueForm.invalid">Guardar</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+       <div class="modal" [style.display]="isSelectTaskModalVisible() ? 'flex' : 'none'">
+            <div class="modal-content">
+                <span class="close-modal" (click)="hideSelectTaskModal()">&times;</span>
+                <h2>Seleccionar Tareas</h2>
+                <div class="task-selection-list">
+                    @if (availableTasks().length === 0) {
+                        <p class="no-tasks-message">No hay tareas disponibles para asociar.</p>
+                    } @else {
+                        @for (task of tasksForModalSelection(); track task.id) {
+                            <div class="task-item-select">
+                                <input
+                                    type="checkbox"
+                                    [id]="'select-task-' + task.id"
+                                    [checked]="isSelectedTask(task.id)"
+                                    (change)="toggleTaskSelection(task)"
+                                >
+                                <label [for]="'select-task-' + task.id">{{ task.title }}</label>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" (click)="hideSelectTaskModal()">Cancelar</button>
+                    <button type="button" class="btn-save" (click)="addSelectedTasks()">Añadir Seleccionadas</button>
+                </div>
             </div>
         </div>
 

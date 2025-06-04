@@ -1,10 +1,12 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Renderer2, inject,signal, WritableSignal, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Renderer2, inject,signal, WritableSignal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { interval, Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NavComponent } from '../../shared/components/nav/nav.component';
 import { Technique } from '../../shared/interfaces/technique.interface';
 import { TechniqueService } from '../../services/technique.service'; // ajusta la ruta si es diferente
+import { Task } from '../../shared/interfaces/task.interface'; // Tu interfaz Task
+import { TaskService } from '../../services/task.service';
 
 @Component({
   selector: 'app-techniques',
@@ -15,6 +17,7 @@ import { TechniqueService } from '../../services/technique.service'; // ajusta l
 })
 export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   techniqueService = inject(TechniqueService);
+  taskService = inject(TaskService);
 
   currentTechnique: Technique = {
     name: 'Pomodoro',
@@ -35,6 +38,30 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   activeTabIndex = signal(0);
   timeLeft = signal(this.currentTechnique.workTime); 
 
+
+   // --- NUEVAS PROPIEDADES PARA GESTIONAR TAREAS ASOCIADAS ---
+  isSelectTaskModalVisible = signal(false);
+
+  // Usa directamente la signal `pendingTasks` de TaskService
+  // Esta será la fuente de todas las tareas *disponibles* para asociar
+  // También podríamos usar `tasks` si quisiéramos completadas o expiradas, pero el requisito es "pendientes".
+  public readonly availableTasks = this.taskService.pendingTasks; // <-- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
+
+  // Esta es la nueva señal computada que filtrará las tareas disponibles para el modal
+  public readonly tasksForModalSelection = computed(() => {
+      const allPending = this.availableTasks(); // Obtiene todas las tareas pendientes del servicio
+      const associated = this.associatedTasks(); // Obtiene las tareas ya asociadas
+
+      // Filtra las tareas pendientes, excluyendo aquellas que ya están en 'associatedTasks'
+      return allPending.filter(pendingTask =>
+          !associated.some(associatedTask => associatedTask.id === pendingTask.id)
+      );
+  });
+
+  associatedTasks: WritableSignal<Task[]> = signal([]); // Las tareas que se mostrarán en la sección "Tareas Asociadas"
+  selectedTasksInModal: Task[] = []; // Tareas seleccionadas temporalmente en el modal
+
+
   fb = inject(FormBuilder);
 
   newTechniqueForm: FormGroup = this.fb.group({
@@ -52,10 +79,15 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('floatingTimer') floatingTimer!: ElementRef;
   @ViewChild('floatingTimerDisplay') floatingTimerDisplay!: ElementRef;
   @ViewChild('tabButtons') tabButtons!: ElementRef<HTMLCollectionOf<HTMLButtonElement>>;
-
   
   constructor(private renderer: Renderer2) {
-    // ✅ Se suscribe explícitamente
+    // SUSCRIBCIONES EXPLICITAS 
+
+    this.taskService.loadTasks();
+
+    console.log("TAREAS PENDIENTES DEL USUARIO", this.availableTasks());
+
+
     this.techniqueService.fetchTechniques().subscribe(() => {
       this.renderTechniqueOptions();
     });
@@ -66,7 +98,9 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
-    // ✅ También con .subscribe
+
+    this.taskService.loadTasks();
+    
     this.techniqueService.fetchTechniques().subscribe(() => {
       this.renderTechniqueOptions();
     });
@@ -377,5 +411,110 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   hideFloatingTimer(): void {
     this.isFloatingTimerVisible = false;
+  }
+
+  // --- NUEVAS FUNCIONES PARA GESTIONAR TAREAS (AJUSTADAS PARA SIGNALS) ---
+
+  // Muestra el modal para seleccionar tareas
+  showSelectTaskModal(): void {
+    this.isSelectTaskModalVisible.set(true);
+    // Reinicia la selección temporal cada vez que se abre el modal
+    this.selectedTasksInModal = [];
+    // Las tareas disponibles (`availableTasks()`) ya son las pendientes,
+    // pero debemos filtrarlas para que no incluyan las que ya están asociadas.
+    // No es necesario reasignar `allUserTasks` porque `availableTasks` es un computed de `TaskService`.
+    // Simplemente usamos el getter `availableTasks()` y filtramos en `toggleTaskSelection` y `addSelectedTasks`.
+  }
+
+  // Oculta el modal de selección de tareas
+  hideSelectTaskModal(): void {
+    this.isSelectTaskModalVisible.set(false);
+    this.selectedTasksInModal = []; // Limpia la selección al cerrar
+  }
+
+  // Verifica si una tarea está seleccionada temporalmente en el modal
+  isSelectedTask(taskId: number): boolean {
+    return this.selectedTasksInModal.some(task => task.id === taskId);
+  }
+
+  // Agrega o quita una tarea de la selección temporal en el modal
+  toggleTaskSelection(task: Task): void {
+    const index = this.selectedTasksInModal.findIndex(t => t.id === task.id);
+    if (index !== -1) {
+      this.selectedTasksInModal.splice(index, 1); // Quita la tarea si ya estaba seleccionada
+    } else {
+      // Solo agrega si la tarea no está ya en la lista de asociadas
+      if (!this.associatedTasks().some(at => at.id === task.id)) {
+        this.selectedTasksInModal.push(task);
+      }
+
+      console.log("revisando cuales ya están asociadas:",this.associatedTasks())
+      console.log("selectedTasksInModal",  this.selectedTasksInModal)
+    }
+  }
+
+  // Añade las tareas seleccionadas del modal a la lista de tareas asociadas
+  addSelectedTasks(): void {
+    // Filtra las tareas seleccionadas para asegurar que no se dupliquen en `associatedTasks`
+    const newAssociated = this.selectedTasksInModal.filter(selectedTask =>
+      !this.associatedTasks().some(associatedTask => associatedTask.id === selectedTask.id)
+    );
+
+    this.associatedTasks.update(currentTasks => [...currentTasks, ...newAssociated]);
+
+    this.hideSelectTaskModal();
+    // Limpia la selección temporal para la próxima vez que se abra el modal
+    this.selectedTasksInModal = [];
+  }
+
+  // Permite al usuario marcar una tarea asociada como completada
+  toggleAssociatedTaskCompletion(task: Task): void {
+      // Determina el nuevo estado basado en el estado actual
+      const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+
+      // Opcional: Actualiza la tarea en el TaskService.
+      // Esto llamará al endpoint /tasks/:id/status que tienes en tu TaskService.
+      // El TaskService ya se encarga de actualizar su propia signal `tasks`.
+      this.taskService.toggleComplete(task); // Esto ya cambia el status y llama al backend.
+
+      // Si no usaras toggleComplete del servicio, harías algo como esto:
+      // task.status = newStatus; // Actualiza el estado localmente (si no usas una copia)
+      // this.taskService.updateTask(task).subscribe({ // Llama al servicio para guardar el cambio
+      //   next: () => console.log('Tarea actualizada con éxito'),
+      //   error: (err) => console.error('Error al actualizar tarea:', err)
+      // });
+
+      console.log(`Tarea ${task.title} cambiada a estado: ${newStatus}`);
+
+      // Si quieres que las tareas completadas se quiten de la lista de asociadas
+      // automáticamente, puedes refiltrar `associatedTasks` o simplemente
+      // confiar en que el usuario la desvinculará si ya está terminada.
+      // Para este caso, dado que el checkbox es para "marcar como completada",
+      // la dejaremos en la lista de asociadas a menos que el usuario la remueva
+      // con el botón 'x'.
+    }
+
+  // Permite al usuario desvincular una tarea de la lista de asociadas (sin borrarla del sistema)
+  removeAssociatedTask(taskId: number): void {
+    this.associatedTasks.update(currentTasks => currentTasks.filter(task => task.id !== taskId));
+    // No necesitas llamar a `loadUserTasks` aquí, ya que `availableTasks` es un signal `computed`
+    // que se actualizará automáticamente cuando cambie `taskService.tasks`.
+  }
+
+  // Este método es para la sección de "week-tasks-container" que no era el foco principal,
+  // pero lo mantengo por si lo necesitas:
+  getTasksWithDueDateForDate(date: any): any[] {
+    // Si tus tareas tienen `dueDate` y quieres filtrarlas por día,
+    // tendrías que acceder a `this.taskService.tasks()` y filtrarlas.
+    // Por ejemplo:
+    /*
+    const targetDate = new Date(date).setHours(0, 0, 0, 0);
+    return this.taskService.tasks().filter(task => {
+      if (!task.dueDate) return false;
+      const taskDueDate = new Date(task.dueDate).setHours(0, 0, 0, 0);
+      return taskDueDate === targetDate;
+    });
+    */
+    return []; // Deja como un array vacío si no lo usas aquí.
   }
 }

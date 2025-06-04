@@ -33,11 +33,14 @@ export class TaskComponent implements OnInit {
     this.tasks = this.taskService.tasks; // ya es signal del servicio
     this.taskService.loadTasks(); // carga inicial
 
+    console.log("TASKS DEL USUARIO", this.taskService.loadTasks());
+
     this.categories = this.taskService.getCategories();
     this.projects = this.taskService.getProjects();
   }
 
   get pendingTasks() {
+    console.log(this.taskService.pendingTasks());
     return this.taskService.pendingTasks();
   }
 
@@ -95,6 +98,7 @@ export class TaskComponent implements OnInit {
   }
 
   saveTaskDetails(): void {
+    console.log("TAREA SELECCIONADA", this.selectedTask)
     if (this.selectedTask && this.selectedTask.status !== 'completed') {
       if (!this.isValidStatus(this.selectedTask.status)) {
         this.selectedTask.status = 'pending';
