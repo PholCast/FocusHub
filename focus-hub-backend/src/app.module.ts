@@ -25,7 +25,7 @@ import { MyLogger } from './logger.service';
       password: '1234',
       database: 'focushubdatabase',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      // synchronize: true,
+      //synchronize: true,
       logging: true,
     }),
     UsersModule,

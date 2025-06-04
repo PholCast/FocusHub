@@ -169,7 +169,16 @@
             </div>
         </div>
 
-
+        <div class="form-group">
+            <label>Recordatorio</label>
+            <select [(ngModel)]="newEvent.remindersHoursBefore" (change)="updateEventReminder()">
+                <option [ngValue]="null">Sin recordatorio</option> 
+                <option [ngValue]="1">1 hora antes</option>
+                <option [ngValue]="2">2 horas antes</option>
+                <option [ngValue]="12">12 horas antes</option>
+                <option [ngValue]="24">1 día antes</option>
+             </select>
+        </div>
 
         <div class="form-group">
             <label>Descripción</label>

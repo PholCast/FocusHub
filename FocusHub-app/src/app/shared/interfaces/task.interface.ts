@@ -9,4 +9,5 @@ export interface Task {
     user_id: number | null;
     category?: string;
     project?: string;
+    reminderDaysBefore?: number;
 }

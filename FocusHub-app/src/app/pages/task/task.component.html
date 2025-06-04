@@ -125,6 +125,21 @@
                 </div>
               </div>
 
+            <div class="detail-item">
+                <label>Recordatorio</label>
+                <select [(ngModel)]="selectedTask.reminderDaysBefore"
+                        [disabled]="selectedTask.status === 'completed' || !selectedTask.dueDate"  (change)="updateTaskReminder()">
+                    <option [value]="undefined">Sin recordatorio</option>
+                    <option value="1">1 día antes</option>
+                    <option value="2">2 días antes</option>
+                    <option value="3">3 días antes</option>
+                    <option value="7">1 semana antes</option>
+                </select>
+                <p *ngIf="selectedTask.dueDate && selectedTask.reminderDaysBefore !== undefined && selectedTask.reminderDaysBefore !== null">
+                    Se notificará el {{ calculateReminderDate(selectedTask.dueDate, selectedTask.reminderDaysBefore) | date:'mediumDate' }}
+                </p>
+            </div>
+
             <div class="actions">
                 <button class="duplicate-btn" (click)="duplicateTask(selectedTask.id)">Duplicar</button>
                 <button class="delete-btn" (click)="confirmDelete(selectedTask.id)">Eliminar</button>

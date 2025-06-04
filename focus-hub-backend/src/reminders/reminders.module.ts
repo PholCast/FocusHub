@@ -11,7 +11,7 @@ import { TasksModule } from '../tasks/tasks.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EventReminder, TaskReminder]),
+    TypeOrmModule.forFeature([EventReminder, TaskReminder,Task,Event]),
     forwardRef(() => EventsModule),
     forwardRef(() => TasksModule),
   ],
