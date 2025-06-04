@@ -1,74 +1,58 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Renderer2, inject,signal, WritableSignal, effect, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, Renderer2, inject, signal, WritableSignal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { interval, Subscription } from 'rxjs';
+import { forkJoin, interval, Observable, Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NavComponent } from '../../shared/components/nav/nav.component';
 import { Technique } from '../../shared/interfaces/technique.interface';
-import { TechniqueService } from '../../services/technique.service'; // ajusta la ruta si es diferente
-import { Task } from '../../shared/interfaces/task.interface'; // Tu interfaz Task
+import { TechniqueService } from '../../services/technique.service';
+import { Task } from '../../shared/interfaces/task.interface';
 import { TaskService } from '../../services/task.service';
+import { FocusSession } from '../../shared/interfaces/focus_session.interface';
+import { FocusSessionTaskService } from '../../services/focus-session-task.service'; 
 
 @Component({
   selector: 'app-techniques',
   standalone: true,
-  imports: [CommonModule, NavComponent,FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, NavComponent, FormsModule, ReactiveFormsModule],
   templateUrl: './techniques.component.html',
   styleUrls: ['./techniques.component.css']
 })
 export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   techniqueService = inject(TechniqueService);
   taskService = inject(TaskService);
+  focusSessionTaskService = inject(FocusSessionTaskService);
 
-  currentTechnique: Technique = {
-    name: 'Pomodoro',
-    workTime: 25 * 60,
-    shortBreak: 5 * 60,
-    longBreak: 15 * 60,
-  };
+  currentFocusSession: FocusSession | null = null;
+  currentTechnique: Technique | null = null; 
 
   currentMode: 'work' | 'shortBreak' | 'longBreak' = 'work';
-
   timerIntervalSubscription: Subscription | null = null;
   isRunning: boolean = false;
   pomodoroCount: number = 0;
-
   isFloatingTimerVisible: boolean = false;
-
   isNewTechniqueModalVisible = signal(false);
   activeTabIndex = signal(0);
-  timeLeft = signal(this.currentTechnique.workTime); 
 
+  timeLeft = signal(0); 
 
-   // --- NUEVAS PROPIEDADES PARA GESTIONAR TAREAS ASOCIADAS ---
   isSelectTaskModalVisible = signal(false);
-
-  // Usa directamente la signal `pendingTasks` de TaskService
-  // Esta será la fuente de todas las tareas *disponibles* para asociar
-  // También podríamos usar `tasks` si quisiéramos completadas o expiradas, pero el requisito es "pendientes".
-  public readonly availableTasks = this.taskService.pendingTasks; // <-- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
-
-  // Esta es la nueva señal computada que filtrará las tareas disponibles para el modal
+  public readonly availableTasks = this.taskService.pendingTasks; 
   public readonly tasksForModalSelection = computed(() => {
-      const allPending = this.availableTasks(); // Obtiene todas las tareas pendientes del servicio
-      const associated = this.associatedTasks(); // Obtiene las tareas ya asociadas
-
-      // Filtra las tareas pendientes, excluyendo aquellas que ya están en 'associatedTasks'
-      return allPending.filter(pendingTask =>
-          !associated.some(associatedTask => associatedTask.id === pendingTask.id)
-      );
+    const allPending = this.availableTasks();
+    const associated = this.associatedTasks();
+    return allPending.filter(pendingTask => !associated.some(associatedTask => associatedTask.id === pendingTask.id));
   });
 
-  associatedTasks: WritableSignal<Task[]> = signal([]); // Las tareas que se mostrarán en la sección "Tareas Asociadas"
-  selectedTasksInModal: Task[] = []; // Tareas seleccionadas temporalmente en el modal
-
+  associatedTasks: WritableSignal<Task[]> = signal([]);
+  selectedTasksInModal: Task[] = [];
 
   fb = inject(FormBuilder);
 
   newTechniqueForm: FormGroup = this.fb.group({
     name: ['', Validators.required],
-    workDuration: [null, [Validators.required, Validators.min(1), Validators.max(120)]],
-    shortBreak: [null, [Validators.required, Validators.min(1), Validators.max(30)]],
-    longBreak: [0, [Validators.min(0), Validators.max(60)]],
+    workDuration: [null, [Validators.required, Validators.min(1), Validators.max(120)]], // En minutos
+    shortBreak: [null, [Validators.required, Validators.min(1), Validators.max(30)]], // En minutos
+    longBreak: [0, [Validators.min(0), Validators.max(60)]], // En minutos
   });
 
   @ViewChild('timerDisplay') timerDisplay!: ElementRef;
@@ -81,90 +65,81 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('tabButtons') tabButtons!: ElementRef<HTMLCollectionOf<HTMLButtonElement>>;
   
   constructor(private renderer: Renderer2) {
-    // SUSCRIBCIONES EXPLICITAS 
-
     this.taskService.loadTasks();
 
-    console.log("TAREAS PENDIENTES DEL USUARIO", this.availableTasks());
-
-
+    // Cargamos las técnicas y renderizamos las opciones
     this.techniqueService.fetchTechniques().subscribe(() => {
       this.renderTechniqueOptions();
-    });
-    // ✅ Este efecto se ejecuta en cada cambio del signal, pero también necesita subscribirse
-    effect(() => {
-      this.techniqueService.fetchTechniques().subscribe(); 
     });
   }
 
   ngOnInit(): void {
-
     this.taskService.loadTasks();
-    
-    this.techniqueService.fetchTechniques().subscribe(() => {
-      this.renderTechniqueOptions();
-    });
+    // La suscripción ya está en el constructor, no es necesario duplicarla
   }
 
+  // --- Lógica para renderizar opciones de técnica por ID ---
   renderTechniqueOptions(): void {
     const selectElement = this.techniqueSelect.nativeElement;
 
-    // 1. Borrar todas las opciones existentes del <select>.
-    // Esto asegura que la lista se reconstruya completamente cada vez
-    // que se actualizan las técnicas desde el servicio.
+    // Limpiar opciones existentes
     while (selectElement.options.length > 0) {
       this.renderer.removeChild(selectElement, selectElement.options[0]);
     }
 
-    // 2. Obtener las técnicas del servicio.
-    const techniques = this.techniqueService.techniquesMap();
+    // Obtener las técnicas del servicio (ahora es un mapa por ID)
+    const techniquesMap = this.techniqueService.techniquesMap();
+    const techniquesArray = Object.values(techniquesMap); // Convertir a array para iterar
 
-    // 3. Añadir cada técnica como una nueva opción al <select>.
-    for (const key in techniques) {
-      if (Object.prototype.hasOwnProperty.call(techniques, key)) {
-        const technique = techniques[key];
-        const option = this.renderer.createElement('option');
-        this.renderer.setProperty(option, 'value', key); // Ejemplo: 'pomodoro'
-        this.renderer.setProperty(option, 'textContent', technique.name); // Ejemplo: 'Pomodoro'
-        this.renderer.appendChild(selectElement, option);
-      }
+    if (techniquesArray.length === 0) {
+      // Si no hay técnicas, mostrar un mensaje o deshabilitar funcionalidades
+      const option = this.renderer.createElement('option');
+      this.renderer.setProperty(option, 'value', '');
+      this.renderer.setProperty(option, 'textContent', 'No hay técnicas disponibles');
+      this.renderer.setProperty(option, 'disabled', true);
+      this.renderer.setProperty(option, 'selected', true);
+      this.renderer.appendChild(selectElement, option);
+      this.currentTechnique = null;
+      this.timeLeft.set(0); // Reiniciar el temporizador
+      this.updateTimerDisplay();
+      this.updateProgressCircle();
+      return;
     }
 
-    // 4. Seleccionar la técnica "Pomodoro" por defecto o la primera disponible.
-    const pomodoroKey = 'pomodoro'; // La clave esperada para la técnica Pomodoro
+    // Añadir cada técnica como una nueva opción al <select>, usando el ID como valor
+    techniquesArray.forEach(technique => {
+      const option = this.renderer.createElement('option');
+      this.renderer.setProperty(option, 'value', technique.id?.toString()); // Usar el ID como valor
+      this.renderer.setProperty(option, 'textContent', technique.name);
+      this.renderer.appendChild(selectElement, option);
+    });
 
-    if (techniques[pomodoroKey]) {
-      // Si la técnica Pomodoro existe en las técnicas cargadas, la establecemos como la actual
-      // y la seleccionamos en el dropdown.
-      this.currentTechnique = techniques[pomodoroKey];
-      this.renderer.setProperty(selectElement, 'value', pomodoroKey);
-    } else if (selectElement.options.length > 0) {
-      // Si Pomodoro no está disponible (lo cual idealmente no debería pasar si tu servicio la gestiona),
-      // seleccionamos la primera técnica de la lista.
-      selectElement.selectedIndex = 0;
-      const selectedKey = selectElement.options[selectElement.selectedIndex].value;
-      this.currentTechnique = this.techniqueService.techniquesMap()[selectedKey];
+    // Seleccionar la primera técnica disponible del backend
+    // Opcional: Podrías intentar seleccionar una "Pomodoro" si la tienes con un ID fijo en DB
+    if (techniquesArray.length > 0) {
+      this.currentTechnique = techniquesArray[0]; // Selecciona la primera cargada
+      this.renderer.setProperty(selectElement, 'value', techniquesArray[0].id?.toString());
     } else {
-      // Si no hay ninguna técnica cargada (por ejemplo, si el servicio devuelve una lista vacía),
-      // mantenemos la definición inicial de Pomodoro como un último recurso.
-      this.currentTechnique = {
-        name: 'Pomodoro',
-        workTime: 25 * 60,
-        shortBreak: 5 * 60,
-        longBreak: 15 * 60,
-      };
-      // No se puede seleccionar en el <select> si no hay opciones, pero al menos el componente tiene un estado.
+      this.currentTechnique = null;
     }
-
-    // 5. Actualizar la interfaz de usuario con la técnica seleccionada.
-    this.timeLeft.set(this.currentTechnique.workTime);
+    
+    if (this.currentTechnique) {
+        this.timeLeft.set(this.currentTechnique.workTime);
+    } else {
+        this.timeLeft.set(0); // Si no hay técnica seleccionada, el tiempo es 0
+    }
+    
     this.updateTimerDisplay();
     this.updateProgressCircle();
-    this.setActiveTab(0); // Esto asegura que la pestaña de "Trabajo" esté activa.
+    this.setActiveTab(0);
   }
 
-
   ngAfterViewInit(): void {
+    // Si currentTechnique no es null, inicializa el temporizador.
+    // Esto se ejecutará después de que `renderTechniqueOptions` pueda haber establecido `currentTechnique`.
+    if (this.currentTechnique) {
+      this.timeLeft.set(this.currentTechnique.workTime);
+    }
     this.updateTimerDisplay();
     this.updateProgressCircle();
     this.setActiveTab(0);
@@ -188,13 +163,18 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   updateProgressCircle(): void {
     let totalTime: number;
-    if (this.currentMode === 'work') {
-      totalTime = this.currentTechnique.workTime;
-    } else if (this.currentMode === 'shortBreak') {
-      totalTime = this.currentTechnique.shortBreak;
+    if (this.currentTechnique) { 
+        if (this.currentMode === 'work') {
+            totalTime = this.currentTechnique.workTime;
+        } else if (this.currentMode === 'shortBreak') {
+            totalTime = this.currentTechnique.shortBreak;
+        } else {
+            totalTime = this.currentTechnique.longBreak;
+        }
     } else {
-      totalTime = this.currentTechnique.longBreak;
+        totalTime = 1; 
     }
+
 
     const progress = (this.timeLeft() / totalTime) * 100;
     this.renderer.setStyle(
@@ -208,8 +188,41 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   startTimer(): void {
     if (this.isRunning) return;
-    this.isRunning = true;
+    if (!this.currentTechnique || this.currentTechnique.id === undefined || this.currentTechnique.id === null) {
+      console.error('❌ No se puede iniciar la Focus Session: la técnica actual no tiene un ID válido. Por favor, selecciona o crea una técnica.');
+      alert('Error: Por favor, selecciona una técnica guardada o crea una nueva para iniciar una sesión de concentración.');
+      return;
+    }
+    console.log("TECNICA SELECCIONADA PARA HACER LA SESIÓN", this.currentTechnique);
+    if (this.currentMode === 'work') {
+      if (this.currentFocusSession && this.currentFocusSession.status === 'in_progress') {
+          this.startActualTimer(); 
+          return;
+      }
 
+      const techniqueId = this.currentTechnique.id;
+
+      console.log(`✨ Intentando crear Focus Session para techniqueId: ${techniqueId}`);
+      this.techniqueService.createFocusSession(techniqueId, 'in_progress').subscribe({
+        next: (newSession: FocusSession) => {
+          console.log('✅ Focus Session creada con éxito:', newSession);
+          this.currentFocusSession = newSession; // <-- ¡Guarda la sesión creada aquí!
+          console.log('Focus Session actual guardada:', this.currentFocusSession);
+          this.startActualTimer(); 
+        },
+        error: (err) => {
+          console.error('❌ Error al crear Focus Session:', err);
+          alert('Error al iniciar la sesión de concentración. Intenta de nuevo.');
+          this.isRunning = false; 
+        }
+      });
+    } else {
+      this.startActualTimer();
+    }
+  }
+
+  private startActualTimer(): void {
+    this.isRunning = true;
     this.timerIntervalSubscription = interval(1000).subscribe(() => {
       if (this.timeLeft() > 0) {
         this.timeLeft.update(value => value - 1);
@@ -232,8 +245,68 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isRunning = false;
   }
 
-  resetTimer(): void {
+ resetTimer(): void {
     this.stopTimer();
+
+    if (this.currentFocusSession && this.currentFocusSession.id && this.currentMode === 'work') {
+      console.log(`🔚 Reiniciando temporizador en modo trabajo. Marcando Focus Session ${this.currentFocusSession.id} como 'completed'.`);
+
+      const sessionIdToComplete = this.currentFocusSession.id;
+      const tasksToAssociate = [...this.associatedTasks()]; // Copiamos las tareas asociadas
+
+      this.techniqueService.updateFocusSessionStatus(sessionIdToComplete, 'completed').subscribe({
+        next: (updatedSession) => {
+          console.log('✅ Focus Session actualizada a completada al reiniciar:', updatedSession);
+          this.currentFocusSession = null; // Limpia la sesión actual
+
+          // **LÓGICA PARA ASOCIAR TAREAS (CORREGIDA)**
+          if (tasksToAssociate.length > 0) {
+            console.log(`🔗 Preparando para asociar ${tasksToAssociate.length} tareas a la Focus Session ${sessionIdToComplete}.`);
+
+            // Creamos un array de Observables de las llamadas a createFocusSessionTask
+            const associationObservables: Observable<any>[] = [];
+            tasksToAssociate.forEach(task => {
+              if (task.id) {
+                // Aquí se crea el Observable, pero la petición no se envía AÚN
+                associationObservables.push(this.focusSessionTaskService.createFocusSessionTask(sessionIdToComplete, task.id));
+              }
+            });
+
+            if (associationObservables.length > 0) {
+              // forkJoin se suscribe a todos los Observables en el array y emite cuando todos completan.
+              // Es aquí donde las peticiones HTTP se envían.
+              forkJoin(associationObservables).subscribe({
+                next: (results) => {
+                  console.log('✅ Todas las FocusSessionTasks creadas con éxito:', results);
+                  this.associatedTasks.set([]); // Limpia las tareas asociadas después de guardarlas
+                },
+                error: (assocErr) => {
+                  console.error('❌ Error al crear una o más FocusSessionTasks:', assocErr);
+                  alert('Error al asociar tareas a la sesión. Revisa la consola.');
+                }
+              });
+            } else {
+                console.log('No hay tareas válidas para asociar.');
+            }
+          } else {
+              console.log('No hay tareas asociadas para guardar en esta sesión.');
+          }
+        },
+        error: (err) => {
+          console.error('❌ Error al actualizar Focus Session a completada al reiniciar:', err);
+          alert('Error al finalizar la sesión actual. Intenta de nuevo.');
+        }
+      });
+    } else {
+      this.currentFocusSession = null;
+      this.associatedTasks.set([]);
+    }
+
+    // ... (resto de la función resetTimer sin cambios)
+    if (!this.currentTechnique) {
+      this.timeLeft.set(0);
+      return;
+    }
     if (this.currentMode === 'work') {
       this.timeLeft.set(this.currentTechnique.workTime);
     } else if (this.currentMode === 'shortBreak') {
@@ -244,6 +317,7 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     this.updateTimerDisplay();
     this.updateProgressCircle();
   }
+
 
   setActiveTab(index: number): void {
     const tabButtonsArray = Array.from(this.tabButtons.nativeElement);
@@ -256,6 +330,13 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     });
     this.activeTabIndex.set(index);
     this.stopTimer();
+
+    if (!this.currentTechnique) {
+        this.timeLeft.set(0);
+        this.updateTimerDisplay();
+        this.updateProgressCircle();
+        return;
+    }
 
     if (index === 0) {
       this.currentMode = 'work';
@@ -271,10 +352,59 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
     this.updateProgressCircle();
   }
 
-
   switchToNextMode(): void {
+    if (!this.currentTechnique) return;
+
     if (this.currentMode === 'work') {
       this.pomodoroCount++;
+
+      if (this.currentFocusSession && this.currentFocusSession.id) {
+        console.log(`🎉 Temporizador de trabajo finalizado. Marcando Focus Session ${this.currentFocusSession.id} como 'completed'.`);
+
+        const sessionIdToComplete = this.currentFocusSession.id;
+        const tasksToAssociate = [...this.associatedTasks()]; // Copiamos las tareas asociadas
+
+        this.techniqueService.updateFocusSessionStatus(sessionIdToComplete, 'completed').subscribe({
+          next: (updatedSession) => {
+            console.log('✅ Focus Session actualizada a completada:', updatedSession);
+            this.currentFocusSession = null; // Limpia la sesión actual
+
+            // **LÓGICA PARA ASOCIAR TAREAS (CORREGIDA)**
+            if (tasksToAssociate.length > 0) {
+              console.log(`🔗 Preparando para asociar ${tasksToAssociate.length} tareas a la Focus Session ${sessionIdToComplete}.`);
+
+              const associationObservables: Observable<any>[] = [];
+              tasksToAssociate.forEach(task => {
+                if (task.id) {
+                  associationObservables.push(this.focusSessionTaskService.createFocusSessionTask(sessionIdToComplete, task.id));
+                }
+              });
+
+              if (associationObservables.length > 0) {
+                forkJoin(associationObservables).subscribe({
+                  next: (results) => {
+                    console.log('✅ Todas las FocusSessionTasks creadas con éxito:', results);
+                    this.associatedTasks.set([]);
+                  },
+                  error: (assocErr) => {
+                    console.error('❌ Error al crear una o más FocusSessionTasks:', assocErr);
+                    alert('Error al asociar tareas a la sesión. Revisa la consola.');
+                  }
+                });
+              } else {
+                  console.log('No hay tareas válidas para asociar.');
+              }
+            } else {
+                console.log('No hay tareas asociadas para guardar en esta sesión.');
+            }
+          },
+          error: (err) => {
+            console.error('❌ Error al actualizar Focus Session a completada:', err);
+            alert('Error al finalizar la sesión actual. Intenta de nuevo.');
+          }
+        });
+      }
+      // ... (resto de la función switchToNextMode sin cambios para la lógica del temporizador)
       if (this.pomodoroCount % 4 === 0 && this.currentTechnique.longBreak > 0) {
         this.currentMode = 'longBreak';
         this.timeLeft.set(this.currentTechnique.longBreak);
@@ -292,50 +422,58 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   changeTechnique(event: Event): void {
-    this.techniqueService.fetchTechniques().subscribe(() => {
-      const selectedValue = (event.target as HTMLSelectElement).value.replace(/-/g, ' ').trim();
-
-      // ahora para obtener el texto :
-
-      const selectedText = (event.target as HTMLSelectElement).options[
-        (event.target as HTMLSelectElement).selectedIndex
-      ].textContent;
-
-      // IMPORTANT: Re-format the textContent to match the keys in your techniquesMap
-      // Assuming your map keys are lowercase and spaces/special chars are replaced with hyphens
-      if (!selectedText) { // Add a check for null/undefined textContent
-        console.error("No text content found for selected option.");
+    const selectedId = parseInt((event.target as HTMLSelectElement).value, 10);
+    if (isNaN(selectedId)) {
+        console.error("Invalid technique ID selected. No technique set.");
+        this.currentTechnique = null;
+        this.timeLeft.set(0);
+        this.updateTimerDisplay();
+        this.updateProgressCircle();
         return;
-      }
-      this.currentTechnique = this.techniqueService.techniquesMap()[selectedText];
-      console.log('selectedValue:', selectedValue);
-      console.log('selectedText:', selectedText);
-      console.log('techniquesMap:', this.techniqueService.techniquesMap()); 
-      this.currentMode = 'work';
-      this.timeLeft.set(this.currentTechnique.workTime);
-      this.updateTimerDisplay();
-      this.updateProgressCircle();
+    }
 
-      if (this.tabButtons && this.tabButtons.nativeElement) {
+    const selectedTechnique = this.techniqueService.getTechniqueById(selectedId);
+    if (!selectedTechnique) {
+        console.error(`Technique with ID ${selectedId} not found. No technique set.`);
+        this.currentTechnique = null; // Deseleccionar si la técnica no se encuentra
+        this.timeLeft.set(0);
+        this.updateTimerDisplay();
+        this.updateProgressCircle();
+        return;
+    }
+
+    this.currentTechnique = selectedTechnique;
+    
+    console.log('Selected Technique Object:', this.currentTechnique);
+    console.log('Techniques Map:', this.techniqueService.techniquesMap()); 
+
+    this.currentMode = 'work';
+    this.timeLeft.set(this.currentTechnique.workTime);
+    this.updateTimerDisplay();
+    this.updateProgressCircle();
+
+    if (this.tabButtons && this.tabButtons.nativeElement) {
         const tabButtonsArray = Array.from(this.tabButtons.nativeElement);
         this.renderer.setProperty(tabButtonsArray[0], 'textContent', 'Sesión de concentración');
         this.renderer.setProperty(tabButtonsArray[1], 'textContent', 'Descanso Corto');
         if (tabButtonsArray.length > 2) {
-        if (this.currentTechnique.longBreak > 0) {
-          this.renderer.setStyle(tabButtonsArray[2], 'display', 'block');
-          this.renderer.setProperty(tabButtonsArray[2], 'textContent', 'Descanso Largo');
-        } else {
-          this.renderer.setStyle(tabButtonsArray[2], 'display', 'none');
+            if (this.currentTechnique.longBreak > 0) {
+                this.renderer.setStyle(tabButtonsArray[2], 'display', 'block');
+                this.renderer.setProperty(tabButtonsArray[2], 'textContent', 'Descanso Largo');
+            } else {
+                this.renderer.setStyle(tabButtonsArray[2], 'display', 'none');
+            }
         }
-      }
-      }
-      this.resetTimer();
-      this.pomodoroCount = 0;
-    });
+    }
+    this.resetTimer();
+    this.pomodoroCount = 0;
   }
 
   showNewTechniqueModal(): void {
     this.isNewTechniqueModalVisible.set(true);
+    this.newTechniqueForm.reset(); // Asegurarse de que el formulario esté limpio
+    this.newTechniqueForm.markAsPristine();
+    this.newTechniqueForm.markAsUntouched();
   }
 
   hideNewTechniqueModal(): void {
@@ -345,36 +483,30 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   saveNewTechnique(): void {
     if (this.newTechniqueForm.valid) {
-      const newTechnique = this.newTechniqueForm.value;
-      const technique: Technique = {
-        name: newTechnique.name,
-        workTime: newTechnique.workDuration * 60,
-        shortBreak: newTechnique.shortBreak * 60,
-        longBreak: newTechnique.longBreak * 60,
+      const newTechniqueFormData = this.newTechniqueForm.value;
+      const techniqueToCreate: Omit<Technique, 'id'> = {
+        name: newTechniqueFormData.name,
+        workTime: newTechniqueFormData.workDuration, // Enviar a segundos
+        shortBreak: newTechniqueFormData.shortBreak, // Enviar a segundos
+        longBreak: newTechniqueFormData.longBreak, // Enviar a segundos
       };
 
-      this.techniqueService.addTechnique(technique).subscribe({
+      this.techniqueService.addTechnique(techniqueToCreate).subscribe({
         next: (createdTechnique) => {
-          // Actualizar select
-          const techniqueId = createdTechnique.name.toLowerCase().replace(/\s+/g, '-');
-          const option = this.renderer.createElement('option');
-          this.renderer.setProperty(option, 'value', techniqueId);
-          this.renderer.setProperty(option, 'textContent', createdTechnique.name);
-          this.renderer.appendChild(this.techniqueSelect.nativeElement, option);
+          this.currentTechnique = createdTechnique; // Establece la técnica recién creada con su ID
 
-          // Seleccionar nuevo valor
-          this.renderer.setProperty(this.techniqueSelect.nativeElement, 'value', techniqueId);
-
-          // Actualizar UI
-          setTimeout(() => {
-            this.changeTechnique({ target: this.techniqueSelect.nativeElement } as any);
-            this.setActiveTab(0);
-          }, 0);
-
-          this.isNewTechniqueModalVisible.set(false);
+          // Vuelve a renderizar las opciones para incluir la nueva técnica
+          this.renderTechniqueOptions(); 
+          
+          // Seleccionar la nueva técnica en el dropdown por su ID
+          if (createdTechnique.id) {
+            this.renderer.setProperty(this.techniqueSelect.nativeElement, 'value', createdTechnique.id.toString());
+          }
+          
+          // Actualizar UI y reiniciar
+          this.changeTechnique({ target: this.techniqueSelect.nativeElement } as any); // Simula el evento de cambio
           this.setActiveTab(0);
-          this.newTechniqueForm.reset();
-
+          this.isNewTechniqueModalVisible.set(false);
           alert(`Técnica "${createdTechnique.name}" creada con éxito.`);
         },
         error: (err) => {
@@ -382,139 +514,63 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
           alert('Error al guardar la técnica. Intenta de nuevo.');
         }
       });
-
     } else {
       alert('Por favor, completa todos los campos requeridos correctamente.');
+      this.newTechniqueForm.markAllAsTouched(); // Para mostrar errores de validación
     }
   }
 
-  toggleFloatingTimer(): void {
-    this.isFloatingTimerVisible = !this.isFloatingTimerVisible;
-  }
+  // --- Métodos para el temporizador flotante, tareas, etc. (sin cambios funcionales importantes) ---
+  toggleFloatingTimer(): void { this.isFloatingTimerVisible = !this.isFloatingTimerVisible; }
+  playNotificationSound(): void { console.log('¡Tiempo terminado!'); }
+  startFloatingTimer(): void { this.startTimer(); }
+  stopFloatingTimer(): void { this.stopTimer(); }
+  resetFloatingTimer(): void { this.resetTimer(); }
+  hideFloatingTimer(): void { this.isFloatingTimerVisible = false; }
 
-  playNotificationSound(): void {
-    console.log('¡Tiempo terminado!');
-
-  }
-
-  startFloatingTimer(): void {
-    this.startTimer();
-  }
-
-  stopFloatingTimer(): void {
-    this.stopTimer();
-  }
-
-  resetFloatingTimer(): void {
-    this.resetTimer();
-  }
-
-  hideFloatingTimer(): void {
-    this.isFloatingTimerVisible = false;
-  }
-
-  // --- NUEVAS FUNCIONES PARA GESTIONAR TAREAS (AJUSTADAS PARA SIGNALS) ---
-
-  // Muestra el modal para seleccionar tareas
   showSelectTaskModal(): void {
     this.isSelectTaskModalVisible.set(true);
-    // Reinicia la selección temporal cada vez que se abre el modal
     this.selectedTasksInModal = [];
-    // Las tareas disponibles (`availableTasks()`) ya son las pendientes,
-    // pero debemos filtrarlas para que no incluyan las que ya están asociadas.
-    // No es necesario reasignar `allUserTasks` porque `availableTasks` es un computed de `TaskService`.
-    // Simplemente usamos el getter `availableTasks()` y filtramos en `toggleTaskSelection` y `addSelectedTasks`.
   }
 
-  // Oculta el modal de selección de tareas
   hideSelectTaskModal(): void {
     this.isSelectTaskModalVisible.set(false);
-    this.selectedTasksInModal = []; // Limpia la selección al cerrar
+    this.selectedTasksInModal = [];
   }
 
-  // Verifica si una tarea está seleccionada temporalmente en el modal
-  isSelectedTask(taskId: number): boolean {
-    return this.selectedTasksInModal.some(task => task.id === taskId);
-  }
+  isSelectedTask(taskId: number): boolean { return this.selectedTasksInModal.some(task => task.id === taskId); }
 
-  // Agrega o quita una tarea de la selección temporal en el modal
   toggleTaskSelection(task: Task): void {
     const index = this.selectedTasksInModal.findIndex(t => t.id === task.id);
     if (index !== -1) {
-      this.selectedTasksInModal.splice(index, 1); // Quita la tarea si ya estaba seleccionada
+      this.selectedTasksInModal.splice(index, 1);
     } else {
-      // Solo agrega si la tarea no está ya en la lista de asociadas
       if (!this.associatedTasks().some(at => at.id === task.id)) {
         this.selectedTasksInModal.push(task);
       }
-
-      console.log("revisando cuales ya están asociadas:",this.associatedTasks())
-      console.log("selectedTasksInModal",  this.selectedTasksInModal)
     }
   }
 
-  // Añade las tareas seleccionadas del modal a la lista de tareas asociadas
   addSelectedTasks(): void {
-    // Filtra las tareas seleccionadas para asegurar que no se dupliquen en `associatedTasks`
     const newAssociated = this.selectedTasksInModal.filter(selectedTask =>
       !this.associatedTasks().some(associatedTask => associatedTask.id === selectedTask.id)
     );
-
     this.associatedTasks.update(currentTasks => [...currentTasks, ...newAssociated]);
-
     this.hideSelectTaskModal();
-    // Limpia la selección temporal para la próxima vez que se abra el modal
     this.selectedTasksInModal = [];
   }
 
-  // Permite al usuario marcar una tarea asociada como completada
   toggleAssociatedTaskCompletion(task: Task): void {
-      // Determina el nuevo estado basado en el estado actual
-      const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+    this.taskService.toggleComplete(task).subscribe({
+      next: (updatedTask) => { console.log('Tarea actualizada a completada/pendiente:', updatedTask); },
+      error: (err) => { console.error('Error al cambiar el estado de la tarea:', err); alert('No se pudo cambiar el estado de la tarea.'); }
+    });
+  }
 
-      // Opcional: Actualiza la tarea en el TaskService.
-      // Esto llamará al endpoint /tasks/:id/status que tienes en tu TaskService.
-      // El TaskService ya se encarga de actualizar su propia signal `tasks`.
-      this.taskService.toggleComplete(task); // Esto ya cambia el status y llama al backend.
-
-      // Si no usaras toggleComplete del servicio, harías algo como esto:
-      // task.status = newStatus; // Actualiza el estado localmente (si no usas una copia)
-      // this.taskService.updateTask(task).subscribe({ // Llama al servicio para guardar el cambio
-      //   next: () => console.log('Tarea actualizada con éxito'),
-      //   error: (err) => console.error('Error al actualizar tarea:', err)
-      // });
-
-      console.log(`Tarea ${task.title} cambiada a estado: ${newStatus}`);
-
-      // Si quieres que las tareas completadas se quiten de la lista de asociadas
-      // automáticamente, puedes refiltrar `associatedTasks` o simplemente
-      // confiar en que el usuario la desvinculará si ya está terminada.
-      // Para este caso, dado que el checkbox es para "marcar como completada",
-      // la dejaremos en la lista de asociadas a menos que el usuario la remueva
-      // con el botón 'x'.
-    }
-
-  // Permite al usuario desvincular una tarea de la lista de asociadas (sin borrarla del sistema)
   removeAssociatedTask(taskId: number): void {
     this.associatedTasks.update(currentTasks => currentTasks.filter(task => task.id !== taskId));
-    // No necesitas llamar a `loadUserTasks` aquí, ya que `availableTasks` es un signal `computed`
-    // que se actualizará automáticamente cuando cambie `taskService.tasks`.
   }
 
-  // Este método es para la sección de "week-tasks-container" que no era el foco principal,
-  // pero lo mantengo por si lo necesitas:
-  getTasksWithDueDateForDate(date: any): any[] {
-    // Si tus tareas tienen `dueDate` y quieres filtrarlas por día,
-    // tendrías que acceder a `this.taskService.tasks()` y filtrarlas.
-    // Por ejemplo:
-    /*
-    const targetDate = new Date(date).setHours(0, 0, 0, 0);
-    return this.taskService.tasks().filter(task => {
-      if (!task.dueDate) return false;
-      const taskDueDate = new Date(task.dueDate).setHours(0, 0, 0, 0);
-      return taskDueDate === targetDate;
-    });
-    */
-    return []; // Deja como un array vacío si no lo usas aquí.
-  }
+  getTasksWithDueDateForDate(date: any): any[] { return []; }
 }

@@ -1,40 +1,22 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Technique } from '../shared/interfaces/technique.interface';
 import { TokenService } from './token.service';
 import { Observable, tap } from 'rxjs';
+import { FocusSession } from '../shared/interfaces/focus_session.interface'; // ¡Solo una interfaz para FocusSession!
 
 @Injectable({
   providedIn: 'root'
 })
 export class TechniqueService {
-  private readonly defaultTechniques: Technique[] = [
-    {
-      name: 'Pomodoro (25/5/15)',
-      workTime: 25 * 60,
-      shortBreak: 5 * 60,
-      longBreak: 15 * 60,
-    },
-    {
-      name: 'Técnica 52/17',
-      workTime: 52 * 60,
-      shortBreak: 17 * 60,
-      longBreak: 0,
-    },
-    {
-      name: 'Técnica 90/20',
-      workTime: 90 * 60,
-      shortBreak: 20 * 60,
-      longBreak: 0,
-    },
-  ];
 
-  public techniques = signal<Technique[]>([...this.defaultTechniques]);
-  public techniquesMap = signal<Record<string, Technique>>(
-    this.buildTechniqueMap(this.defaultTechniques)
-  );
+  public techniques = signal<Technique[]>([]);
+  public techniquesMap = signal<Record<number, Technique>>({}); 
+  public focusSessions = signal<FocusSession[]>([]);
 
-  private readonly baseUrl = 'http://localhost:3000/productivity/techniques';
+  private readonly baseUrl = 'http://backend:3000/productivity/techniques';
+  private readonly baseUrlFocusSessions = 'http://backend:3000/productivity/focus-sessions';
+
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
 
@@ -52,49 +34,27 @@ export class TechniqueService {
 
     console.log(`🔄 Fetching techniques for userId: ${userId}`);
 
+    // El backend ahora obtiene el userId del token para Focus Sessions, pero para Techniques
+    // todavía lo pasamos como Query Param.
     return this.http.get<Technique[]>(`${this.baseUrl}?userId=${userId}`, this.getHeaders()).pipe(
       tap((fetched) => {
         console.log('📦 Techniques fetched from server:', fetched);
-
-        const current = this.techniques();
-        console.log('📂 Current techniques in signal:', current);
-
-        const merged = [...current];
-
-        fetched.forEach((newT) => {
-          const exists = current.some(t => t.name === newT.name);
-          if (!exists) {
-            console.log(`➕ Adding new technique: ${newT.name}`);
-            merged.push(newT);
-          } else {
-            console.log(`✅ Technique already exists: ${newT.name}`);
-          }
-        });
-
-        this.techniques.set(merged);
+        
+        this.techniques.set(fetched); // Simplemente reemplazamos con las fetched
+        this.techniquesMap.set(this.buildTechniqueMapById(fetched)); // Reconstruimos el mapa
+        
         console.log('✅ Updated techniques signal:', this.techniques());
-
-        const currentMap = { ...this.techniquesMap() };
-        fetched.forEach(t => {
-          if (!currentMap[t.name]) {
-            console.log(`🗺️ Adding to techniquesMap: ${t.name}`);
-            currentMap[t.name] = t;
-          } else {
-            console.log(`📌 Already in techniquesMap: ${t.name}`);
-          }
-        });
-
-        this.techniquesMap.set(currentMap);
         console.log('✅ Updated techniquesMap signal:', this.techniquesMap());
       })
     );
   }
 
-  getTechnique(name: string): Technique | undefined {
-    return this.techniquesMap()[name];
+  getTechniqueById(id: number): Technique | undefined {
+    return this.techniquesMap()[id];
   }
 
-  addTechnique(technique: Technique): Observable<Technique> {
+  // `technique` no tiene `id` al crear
+  addTechnique(technique: Omit<Technique, 'id'>): Observable<Technique> { 
     console.log("añadiendo tecnica:", technique)
     const userId = this.getUserId();
     if (!userId) {
@@ -102,67 +62,70 @@ export class TechniqueService {
       return new Observable<Technique>();
     }
 
-    return this.http.post<Technique>(`${this.baseUrl}?userId=${userId}`, technique, this.getHeaders()).pipe(
+    const createDto = {
+        name: technique.name,
+        workDuration: technique.workTime / 60,    // Convertir a minutos
+        breakDuration: technique.shortBreak / 60, // Convertir a minutos
+        longBreakDuration: technique.longBreak ? technique.longBreak / 60 : 0, // Convertir a minutos, manejar opcional
+        description: technique.description // Si tienes descripción
+    };
+
+    return this.http.post<Technique>(`${this.baseUrl}?userId=${userId}`, createDto, this.getHeaders()).pipe(
       tap((newTechnique) => {
-        const currentList = this.techniques();
-        const currentMap = this.techniquesMap();
-
-        // Evitar duplicado
-        if (!currentList.some(t => t.name === newTechnique.name)) {
-          this.techniques.set([...currentList, newTechnique]);
-        }
-
-        if (!currentMap[newTechnique.name]) {
-          this.techniquesMap.set({ ...currentMap, [newTechnique.name]: newTechnique });
-        }
+        this.techniques.update(currentList => [...currentList, newTechnique]);
+        this.techniquesMap.update(currentMap => ({ ...currentMap, [newTechnique.id!]: newTechnique }));
       })
     );
   }
 
-  updateTechnique(name: string, updated: Technique): Observable<Technique> {
+  updateTechnique(id: number, updated: Partial<Omit<Technique, 'id'>>): Observable<Technique> {
     const userId = this.getUserId();
     if (!userId) {
       console.error('No userId found');
       return new Observable<Technique>();
     }
 
-    return this.http.patch<Technique>(`${this.baseUrl}/${name}?userId=${userId}`, updated, this.getHeaders()).pipe(
-      tap((updatedTechnique) => {
-        const updatedList = this.techniques().map(t =>
-          t.name === name ? updatedTechnique : t
-        );
-        this.techniques.set(updatedList);
+    // Construye el DTO para el backend, convirtiendo a minutos si es necesario
+    const updateDto: any = {};
+    if (updated.name !== undefined) updateDto.name = updated.name;
+    if (updated.workTime !== undefined) updateDto.workDuration = updated.workTime / 60;
+    if (updated.shortBreak !== undefined) updateDto.breakDuration = updated.shortBreak / 60;
+    if (updated.longBreak !== undefined) updateDto.longBreakDuration = updated.longBreak / 60;
+    if (updated.description !== undefined) updateDto.description = updated.description;
 
-        const currentMap = this.techniquesMap();
-        this.techniquesMap.set({
+    return this.http.patch<Technique>(`${this.baseUrl}/${id}?userId=${userId}`, updateDto, this.getHeaders()).pipe(
+      tap((updatedTechnique) => {
+        this.techniques.update(currentList => currentList.map(t =>
+          t.id === id ? updatedTechnique : t
+        ));
+        this.techniquesMap.update(currentMap => ({
           ...currentMap,
-          [updatedTechnique.name]: updatedTechnique
-        });
+          [updatedTechnique.id!]: updatedTechnique
+        }));
       })
     );
   }
 
-  deleteTechnique(name: string): Observable<void> {
+  deleteTechnique(id: number): Observable<void> {
     const userId = this.getUserId();
     if (!userId) {
       console.error('No userId found');
       return new Observable<void>();
     }
 
-    return this.http.delete<void>(`${this.baseUrl}/${name}?userId=${userId}`, this.getHeaders()).pipe(
+    return this.http.delete<void>(`${this.baseUrl}/${id}?userId=${userId}`, this.getHeaders()).pipe(
       tap(() => {
-        const updatedList = this.techniques().filter(t => t.name !== name);
-        this.techniques.set(updatedList);
-
-        const currentMap = { ...this.techniquesMap() };
-        delete currentMap[name];
-        this.techniquesMap.set(currentMap);
+        this.techniques.update(currentList => currentList.filter(t => t.id !== id));
+        this.techniquesMap.update(currentMap => {
+          const { [id]: removed, ...rest } = currentMap;
+          return rest;
+        });
       })
     );
   }
 
-  exists(name: string): boolean {
-    return !!this.getTechnique(name);
+  exists(id: number): boolean { // Ahora usa ID para verificar existencia
+    return !!this.getTechniqueById(id);
   }
 
   private getHeaders() {
@@ -174,10 +137,71 @@ export class TechniqueService {
     };
   }
 
-  private buildTechniqueMap(techniques: Technique[]): Record<string, Technique> {
+  private buildTechniqueMapById(techniques: Technique[]): Record<number, Technique> {
     return techniques.reduce((acc, t) => {
-      acc[t.name] = t;
+      if (t.id) { // Solo si la técnica tiene un ID
+        acc[t.id] = t;
+      }
       return acc;
-    }, {} as Record<string, Technique>);
+    }, {} as Record<number, Technique>);
+  }
+
+
+  loadFocusSessions(): void {
+    // Ya no necesitas obtener userId del frontend ni enviarlo como Query Param.
+    // El backend lo obtendrá de req.user.userId.
+    this.http.get<FocusSession[]>(`${this.baseUrlFocusSessions}`, this.getHeaders()).pipe(
+      tap(sessions => {
+        this.focusSessions.set(sessions);
+        console.log('📈 Sesiones de concentración cargadas:', sessions);
+      })
+    ).subscribe({
+      error: (err) => console.error('Error al cargar las sesiones de concentración:', err)
+    });
+  }
+
+
+  createFocusSession(techniqueId: number, status: 'in_progress' | 'paused' | 'completed' = 'in_progress'): Observable<FocusSession> {
+    // El payload no necesita userId. El backend espera un DTO sin userId.
+    const payload = {
+      techniqueId: techniqueId,
+      status: status
+    };
+
+    console.log('🚀 Creando sesión de concentración (payload sin userId):', payload);
+
+    return this.http.post<FocusSession>(`${this.baseUrlFocusSessions}`, payload, this.getHeaders()).pipe(
+      tap(newSession => {
+        this.focusSessions.update(current => [newSession, ...current]);
+        console.log('✅ Sesión de concentración creada con éxito:', newSession);
+      })
+    );
+  }
+
+
+  updateFocusSession(sessionId: number, updateData: Partial<FocusSession>): Observable<FocusSession> {
+    // Ya no necesitas userId como parámetro ni enviarlo como Query Param.
+    // El backend lo obtendrá de req.user.userId.
+    return this.http.patch<FocusSession>(`${this.baseUrlFocusSessions}/${sessionId}`, updateData, this.getHeaders()).pipe(
+      tap(updatedSession => {
+        this.focusSessions.update(current => current.map(s => s.id === updatedSession.id ? updatedSession : s));
+        console.log('🔄 Sesión de concentración actualizada:', updatedSession);
+      })
+    );
+  }
+
+  removeFocusSession(sessionId: number): Observable<void> {
+    // Ya no necesitas userId como parámetro ni enviarlo como Query Param.
+    // El backend lo obtendrá de req.user.userId.
+    return this.http.delete<void>(`${this.baseUrlFocusSessions}/${sessionId}`, this.getHeaders()).pipe(
+      tap(() => {
+        this.focusSessions.update(current => current.filter(s => s.id !== sessionId));
+        console.log('🗑️ Sesión de concentración eliminada:', sessionId);
+      })
+    );
+  }
+
+  updateFocusSessionStatus(sessionId: number, status: 'in_progress' | 'paused' | 'completed'): Observable<FocusSession> {
+    return this.http.patch<FocusSession>(`${this.baseUrlFocusSessions}/${sessionId}`, { status }, this.getHeaders());
   }
 }

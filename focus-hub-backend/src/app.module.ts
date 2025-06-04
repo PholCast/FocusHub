@@ -19,13 +19,13 @@ import { MyLogger } from './logger.service';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
+      host: 'mysql-db',
       port: 3306,
-      username: 'root',
-      password: '1234',
-      database: 'focushubdatabase',
+      username: 'testuser',
+      password: 'testuser123',
+      database: 'focus_hub_database',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      //synchronize: true,
+      synchronize: true,
       logging: true,
     }),
     UsersModule,
@@ -41,3 +41,4 @@ import { MyLogger } from './logger.service';
   providers: [AppService,MyLogger],
 })
 export class AppModule {}
+

@@ -17,7 +17,7 @@
             <div class="timer-tabs" #tabButtons>
                 <button (click)="setActiveTab(0)" class="tab-btn" [class.active]="activeTabIndex() === 0">Sesión de concentración</button>
                 <button (click)="setActiveTab(1)" class="tab-btn" [class.active]="activeTabIndex() === 1">Descanso Corto</button>
-                @if(this.currentTechnique.longBreak != 0){
+                @if(this.currentTechnique?.longBreak != 0){
                 <button (click)="setActiveTab(2)" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
                 }@else{
                 <button disabled style="opacity: 0.5;" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
@@ -124,7 +124,7 @@
 
         <div class="floating-timer" #floatingTimer [style.display]="isFloatingTimerVisible ? 'block' : 'none'">
             <div class="floating-timer-header">
-                <span class="technique-name">{{ currentTechnique.name }}</span>
+                <span class="technique-name">{{ currentTechnique?.name }}</span>
                 <span class="close-floating" (click)="hideFloatingTimer()">&times;</span>
             </div>
             <div #floatingTimerDisplay class="floating-timer-display">{{ timeLeft() }}</div>

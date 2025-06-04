@@ -10,7 +10,7 @@ import { EventReminder } from '../shared/interfaces/event-reminder.interface'; /
   providedIn: 'root'
 })
 export class ReminderService {
-  private readonly baseUrl = 'http://localhost:3000/reminders';
+  private readonly baseUrl = 'http://backend:3000/reminders';
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
 
@@ -151,6 +151,7 @@ export class ReminderService {
       })
     );
   }
+  
   markReminderAsNotifiedEvent(reminderId: number): Observable<any> {
     return this.http.patch(`${this.baseUrl}/event/${reminderId}/status`, 
       { status: false }, // Usa false para eventos

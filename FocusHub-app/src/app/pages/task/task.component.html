@@ -13,7 +13,7 @@
 
         <h2>Tareas pendientes</h2>
         <ul class="task-list">
-            <li *ngFor="let task of pendingTasks" [class.completed]="task.status === 'completed'">
+            <li *ngFor="let task of taskService.pendingTasks()" [class.completed]="task.status === 'completed'">
                 <div class="task-item">
                     <input type="checkbox" [checked]="task.status === 'completed'" (change)="toggleComplete(task.id)">
                     <span (click)="openTaskDetails(task)">{{ task.title }}</span>
@@ -26,10 +26,10 @@
 
         <div class="expandable-section">
             <button class="expand-btn" (click)="showCompleted = !showCompleted">
-                {{ showCompleted ? '▼' : '▶' }} Tareas completadas ({{ completedTasks.length }})
+                {{ showCompleted ? '▼' : '▶' }} Tareas completadas ({{ taskService.completedTasks().length }})
             </button>
             <ul class="task-list" *ngIf="showCompleted">
-                <li *ngFor="let task of completedTasks" class="completed">
+                <li *ngFor="let task of taskService.completedTasks()" class="completed">
                     <div class="task-item">
                         <input type="checkbox" [checked]="true" (change)="toggleComplete(task.id)">
                         <span (click)="openTaskDetails(task)">{{ task.title }}</span>
@@ -40,10 +40,10 @@
 
         <div class="expandable-section">
             <button class="expand-btn" (click)="showExpired = !showExpired">
-                {{ showExpired ? '▼' : '▶' }} Tareas vencidas ({{ expiredTasks.length }})
+                {{ showExpired ? '▼' : '▶' }} Tareas vencidas ({{ taskService.expiredTasks().length }})
             </button>
             <ul class="task-list" *ngIf="showExpired">
-                <li *ngFor="let task of expiredTasks" class="expired">
+                <li *ngFor="let task of taskService.expiredTasks()" class="expired">
                     <div class="task-item">
                         <input type="checkbox" [checked]="task.status === 'completed'" (change)="toggleComplete(task.id)">
                         <span (click)="openTaskDetails(task)">{{ task.title }}</span>
@@ -139,7 +139,6 @@
                     Se notificará el {{ calculateReminderDate(selectedTask.dueDate, selectedTask.reminderDaysBefore) | date:'mediumDate' }}
                 </p>
             </div>
-
             <div class="actions">
                 <button class="duplicate-btn" (click)="duplicateTask(selectedTask.id)">Duplicar</button>
                 <button class="delete-btn" (click)="confirmDelete(selectedTask.id)">Eliminar</button>

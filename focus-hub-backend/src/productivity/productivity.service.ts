@@ -52,35 +52,52 @@ export class ProductivityService {
     });
   }
 
-  async findOneTechniqueByName(name:string, userId: number): Promise<Technique> {
-    const technique = await this.techniqueRepository.findOne({ where: { name, user: { name: name } } });
-    if (!technique) throw new NotFoundException(`Technique with ID ${name} not found`);
+  // CAMBIADO: de findOneTechniqueByName a findOneTechniqueById
+  async findOneTechniqueById(id: number, userId: number): Promise<Technique> {
+    const technique = await this.techniqueRepository.findOne({
+      where: { id: id, user: { id: userId } },
+    });
+    if (!technique) throw new NotFoundException(`Technique with ID ${id} not found for user ${userId}`);
     return technique;
   }
 
-  async updateTechniqueByName(name: string, userId: number, updateTechniqueDto: UpdateTechniqueDto): Promise<Technique> {
-    const technique = await this.findOneTechniqueByName(name, userId);
+  // CAMBIADO: de updateTechniqueByName a updateTechniqueById
+  async updateTechniqueById(id: number, userId: number, updateTechniqueDto: UpdateTechniqueDto): Promise<Technique> {
+    const technique = await this.findOneTechniqueById(id, userId); // Usa el nuevo método findById
 
-    if (updateTechniqueDto.name) {
-      const newName = updateTechniqueDto.name.toLowerCase();
-      const existingTechnique = await this.techniqueRepository.findOne({
-        where: { name: newName, user: { id: userId } },
+    // Si el nombre se está actualizando, verificar unicidad para el mismo usuario
+    if (updateTechniqueDto.name && updateTechniqueDto.name !== technique.name) {
+      const existingTechniqueWithNewName = await this.techniqueRepository.findOne({
+        where: { name: updateTechniqueDto.name, user: { id: userId } },
       });
-
-      if (existingTechnique && existingTechnique.name !== name) {
-        throw new BadRequestException(`Technique with name '${newName}' already exists for this user`);
+      if (existingTechniqueWithNewName) {
+        throw new BadRequestException(`Technique with name '${updateTechniqueDto.name}' already exists for this user`);
       }
-      updateTechniqueDto.name = newName;
+    }
+
+    // Convertir duraciones de minutos a segundos antes de asignar (si aplica)
+    if (updateTechniqueDto.workDuration !== undefined) {
+      updateTechniqueDto.workDuration = updateTechniqueDto.workDuration * 60;
+      delete updateTechniqueDto.workDuration; // Eliminar la propiedad original para evitar conflicto
+    }
+    if (updateTechniqueDto.breakDuration !== undefined) {
+      updateTechniqueDto.breakDuration = updateTechniqueDto.breakDuration * 60;
+      delete updateTechniqueDto.breakDuration;
+    }
+    if (updateTechniqueDto.longBreakDuration !== undefined) {
+      updateTechniqueDto.longBreakDuration = updateTechniqueDto.longBreakDuration * 60;
+      delete updateTechniqueDto.longBreakDuration;
     }
 
     Object.assign(technique, updateTechniqueDto);
     return this.techniqueRepository.save(technique);
   }
 
-  async removeTechniqueByName(name: string, userId: number): Promise<void> {
-    const technique = await this.findOneTechniqueByName(name, userId);
+  async removeTechniqueById(id: number, userId: number): Promise<void> {
+    const technique = await this.findOneTechniqueById(id, userId); // Usa el nuevo método findById
     await this.techniqueRepository.remove(technique);
   }
+
 
   async createFocusSession(createFocusSessionDto: CreateFocusSessionDto): Promise<FocusSession> {
     const { userId, techniqueId, status } = createFocusSessionDto;

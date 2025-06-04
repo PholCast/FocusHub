@@ -103,8 +103,9 @@ export class AppComponent implements OnInit, OnDestroy {
                 if (new Date(reminder.reminderTime) <= new Date() && isActive) {
                   this.showEventReminder(event, reminder);
                 }
-              }
-            }
+              } else {
+                console.log(`No hay recordatorio para la tarea ID: ${event.id} - "${event.title}"`);
+              } }
           });
         }
       });

@@ -53,7 +53,10 @@ export class CalendarComponent implements OnInit {
     private taskService: TaskService,
     private eventService: EventService,
     private reminderService: ReminderService
-  ) { }
+  ) { 
+    this.eventService.fetchEvents();
+    this.taskService.loadTasks();
+  }
 
   ngOnInit(): void {
     // Simplemente invocar carga (fetch) en ambos servicios
@@ -221,7 +224,7 @@ export class CalendarComponent implements OnInit {
 
     const allEvents = this.eventService.events();
     const allTasks = this.taskService.tasks();
-
+    
     // Filtrar eventos
     const timedEvents = allEvents.filter((event: CalendarEvent) => {
       if (!event.startTime) return false;
@@ -641,7 +644,6 @@ export class CalendarComponent implements OnInit {
         }
       });
     } else {
-      this.eventService.createEvent(event);
       // Create new event
       this.eventService.createEvent(event).subscribe({
         next: (createdEvent) => {
@@ -864,10 +866,22 @@ export class CalendarComponent implements OnInit {
         user_id: null
       };
 
-      this.taskService.addTask(taskToSave);
-      this.loadTasks();
-      this.showTaskForm = false;
-      this.newTask = { title: '', dueDate: '' };
+      this.taskService.addTask(taskToSave).subscribe({
+        next: (addedTask) => {
+          console.log('Tarea creada con éxito:', addedTask);
+          // No es necesario llamar a loadTasks() aquí si tu service.addTask ya actualiza la signal.
+          // Pero si quieres asegurar que todo esté resincronizado, podrías hacerlo.
+          // this.taskService.loadTasks(); // Esto sería redundante si addTask() ya hace el this.tasks.update()
+          
+          // Limpiar el formulario y ocultarlo
+          this.showTaskForm = false;
+          this.newTask = { title: '', dueDate: '' };
+        },
+        error: (err) => {
+          console.error('Error al crear la tarea:', err);
+          alert('No se pudo guardar la tarea.');
+        }
+      });
     } else {
       alert('Error: No se pudo determinar la fecha de vencimiento para la tarea.');
       this.cancelTaskForm();

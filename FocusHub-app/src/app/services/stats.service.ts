@@ -8,7 +8,7 @@ import { TokenService } from './token.service';
   providedIn: 'root'
 })
 export class StatsService {
-  private readonly apiUrl = 'http://localhost:3000/productivity/stats'; 
+  private readonly apiUrl = 'http://backend:3000/productivity/stats'; 
   private readonly http = inject(HttpClient);
   private readonly tokenService = inject(TokenService);
 

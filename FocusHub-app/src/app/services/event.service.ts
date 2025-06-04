@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { TokenService } from './token.service';
 import { CalendarEvent } from '../shared/interfaces/calendar-event.interface';
-import { tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -10,7 +10,7 @@ import { tap } from 'rxjs';
 export class EventService {
   public events = signal<CalendarEvent[]>([]); // Signal reactiva
 
-  private readonly baseUrl = 'http://localhost:3000/events';
+  private readonly baseUrl = 'http://backend:3000/events';
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
 
@@ -22,47 +22,46 @@ export class EventService {
       });
   }
 
-  createEvent(event: Partial<CalendarEvent>): void {
+  createEvent(event: Partial<CalendarEvent>): Observable<CalendarEvent> {
     const payload = this.mapEventToDto(event);
-    this.http.post<CalendarEvent>(this.baseUrl, payload, this.getHeaders())
+    return this.http.post<CalendarEvent>(this.baseUrl, payload, this.getHeaders())
       .pipe(
         tap((newEvent) => {
+          // Añade el nuevo evento a la señal local
           const current = this.events();
           this.events.set([...current, newEvent]);
         })
-      ).subscribe({
-        error: (err) => console.error('Error al crear evento:', err)
-      });
+        // Ya no necesitas .subscribe() aquí
+      );
   }
 
-  updateEvent(event: Partial<CalendarEvent>): void {
+  updateEvent(event: Partial<CalendarEvent>): Observable<CalendarEvent> {
     if (!event.id) {
       throw new Error('El evento debe tener un id para poder actualizarse.');
     }
     const payload = this.mapEventToDto(event);
-    this.http.put<CalendarEvent>(`${this.baseUrl}/${event.id}`, payload, this.getHeaders())
+    return this.http.put<CalendarEvent>(`${this.baseUrl}/${event.id}`, payload, this.getHeaders())
       .pipe(
         tap((updatedEvent) => {
+          // Actualiza la señal localmente
           const updatedList = this.events().map(ev =>
             ev.id === updatedEvent.id ? updatedEvent : ev
           );
           this.events.set(updatedList);
         })
-      ).subscribe({
-        error: (err) => console.error('Error al actualizar evento:', err)
-      });
+        // Ya no necesitas .subscribe() aquí, el componente se encargará
+      );
   }
 
-  deleteEvent(id: number): void {
-    this.http.delete<void>(`${this.baseUrl}/${id}`, this.getHeaders())
+  deleteEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, this.getHeaders())
       .pipe(
         tap(() => {
+          // Elimina el evento de la señal local
           const updatedList = this.events().filter(ev => ev.id !== id);
           this.events.set(updatedList);
         })
-      ).subscribe({
-        error: (err) => console.error('Error al eliminar evento:', err)
-      });
+      );
   }
 
   getEventById(id: number): void {

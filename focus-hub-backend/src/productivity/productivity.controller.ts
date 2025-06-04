@@ -40,63 +40,64 @@ export class ProductivityController {
  }
 
 
-  @Get('techniques/:name')
-  @ApiOperation({ summary: 'Get a technique by name' })
+  @Get('techniques/:id') // CAMBIADO: :name a :id
+  @ApiOperation({ summary: 'Get a technique by ID' }) // CAMBIADO: summary
   @ApiResponse({ status: 200, description: 'Return the technique' })
   @ApiResponse({ status: 404, description: 'Technique not found' })
-  findOneTechnique(@Param('name') name: string, @Query('userId') userId: number) {
-    return this.productivityService.findOneTechniqueByName(name, userId);
+  findOneTechnique(@Param('id') id: string, @Query('userId') userId: number) { // CAMBIADO: name a id
+    return this.productivityService.findOneTechniqueById(+id, userId); // CAMBIADO: findOneTechniqueByName a findOneTechniqueById
   }
 
-  @Patch('techniques/:name')
-  @ApiOperation({ summary: 'Update a technique by name' })
+  @Patch('techniques/:id') // CAMBIADO: :name a :id
+  @ApiOperation({ summary: 'Update a technique by ID' }) // CAMBIADO: summary
   @ApiResponse({ status: 200, description: 'Technique updated successfully' })
   @ApiResponse({ status: 404, description: 'Technique not found' })
   updateTechnique(
-    @Param('name') name: string, 
-    @Body() updateTechniqueDto: UpdateTechniqueDto, 
+    @Param('id') id: string, // CAMBIADO: name a id
+    @Body() updateTechniqueDto: UpdateTechniqueDto,
     @Query('userId') userId: number
   ) {
-    return this.productivityService.updateTechniqueByName(name, userId, updateTechniqueDto);
+    return this.productivityService.updateTechniqueById(+id, userId, updateTechniqueDto); // CAMBIADO: updateTechniqueByName a updateTechniqueById
   }
 
-  @Delete('techniques/:name')
-  @ApiOperation({ summary: 'Delete a technique by name' })
+  @Delete('techniques/:id') // CAMBIADO: :name a :id
+  @ApiOperation({ summary: 'Delete a technique by ID' }) // CAMBIADO: summary
   @ApiResponse({ status: 200, description: 'Technique deleted successfully' })
   @ApiResponse({ status: 404, description: 'Technique not found' })
-  removeTechnique(@Param('name') name: string, @Query('userId') userId: number) {
-    return this.productivityService.removeTechniqueByName(name, userId);
+  removeTechnique(@Param('id') id: string, @Query('userId') userId: number) { // CAMBIADO: name a id
+    return this.productivityService.removeTechniqueById(+id, userId); // CAMBIADO: removeTechniqueByName a removeTechniqueById
   }
 
   @Post('focus-sessions')
   @ApiOperation({ summary: 'Create a new focus session' })
-  @ApiResponse({ status: 201, description: 'Focus session created successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 404, description: 'User or Technique not found' })
-  createFocusSession(@Body() createFocusSessionDto: CreateFocusSessionDto) {
-    return this.productivityService.createFocusSession(createFocusSessionDto);
+  createFocusSession(@Body() createFocusSessionDto: Omit<CreateFocusSessionDto, 'userId'>, @Request() req) { // Omitimos userId del DTO aquí
+    const userId = req.user.userId; // Obtienes userId del token
+    return this.productivityService.createFocusSession({ ...createFocusSessionDto, userId }); // Lo pasas al servicio
   }
+
 
   @Get('focus-sessions')
   @ApiOperation({ summary: 'Get all focus sessions for a user' })
-  @ApiResponse({ status: 200, description: 'Return all focus sessions' })
-  findAllFocusSessions(@Query('userId') userId: number) {
+  findAllFocusSessions(@Request() req) { // Quitas @Query('userId') userId: number
+    const userId = req.user.userId; // Obtienes userId del token
     return this.productivityService.findAllFocusSessions(userId);
   }
 
+
   @Get('focus-sessions/:id')
   @ApiOperation({ summary: 'Get a focus session by ID' })
-  @ApiResponse({ status: 200, description: 'Return the focus session' })
-  @ApiResponse({ status: 404, description: 'Focus session not found' })
-  findOneFocusSession(@Param('id') id: string, @Query('userId') userId: number) {
+  findOneFocusSession(@Param('id') id: string, @Request() req) { // Quitas @Query('userId') userId: number
+    const userId = req.user.userId; // Obtienes userId del token
     return this.productivityService.findOneFocusSession(+id, userId);
   }
-
+  
   @Patch('focus-sessions/:id')
   @ApiOperation({ summary: 'Update a focus session' })
   @ApiResponse({ status: 200, description: 'Focus session updated successfully' })
   @ApiResponse({ status: 404, description: 'Focus session not found' })
-  updateFocusSession(@Param('id') id: string, @Body() updateFocusSessionDto: UpdateFocusSessionDto, @Query('userId') userId: number) {
+  updateFocusSession( @Param('id') id: string, @Body() updateFocusSessionDto: UpdateFocusSessionDto, @Request() req) {
+    const userId = req.user.userId; // Extraes el userId del token
+    // Pasas el userId al servicio, que es quien lo necesita
     return this.productivityService.updateFocusSession(+id, userId, updateFocusSessionDto);
   }
 
@@ -104,7 +105,9 @@ export class ProductivityController {
   @ApiOperation({ summary: 'Delete a focus session' })
   @ApiResponse({ status: 200, description: 'Focus session deleted successfully' })
   @ApiResponse({ status: 404, description: 'Focus session not found' })
-  removeFocusSession(@Param('id') id: string, @Query('userId') userId: number) {
+  removeFocusSession( @Param('id') id: string, @Request() req) {
+    const userId = req.user.userId; // Extraes el userId del token
+    // Pasas el userId al servicio, que es quien lo necesita
     return this.productivityService.removeFocusSession(+id, userId);
   }
 

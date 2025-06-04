@@ -1,4 +1,3 @@
-// task.component.ts
 import { Component, OnInit, Signal, computed, signal } from '@angular/core';
 import { Task } from '../../shared/interfaces/task.interface';
 import { TaskService } from '../../services/task.service';
@@ -6,7 +5,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NavComponent } from '../../shared/components/nav/nav.component';
 import { ReminderService } from '../../services/reminder.service';
-// REMOVED: import { format } from 'date-fns'; // This import is not needed here as you're using Angular's date pipe in HTML
 
 @Component({
   selector: 'app-task',
@@ -17,43 +15,21 @@ import { ReminderService } from '../../services/reminder.service';
 })
 export class TaskComponent implements OnInit {
 
-  tasks!: Signal<Task[]>;
   selectedTask: Task | null = null;
   showCompleted = false;
   showExpired = false;
 
   newCategory = '';
   categories: string[] = [];
-
   newProject = '';
   projects: string[] = [];
 
-  constructor(private taskService: TaskService, private reminderService: ReminderService) {
-    this.tasks = this.taskService.tasks;
-  }
+  constructor(public taskService: TaskService, private reminderService: ReminderService) {}
 
   ngOnInit(): void {
-    this.tasks = this.taskService.tasks; // ✅ ya es signal del servicio
     this.taskService.loadTasks(); // carga inicial
-
     this.categories = this.taskService.getCategories();
     this.projects = this.taskService.getProjects();
-  }
-
-  get pendingTasks() {
-    return this.tasks().filter(task => task.status === 'pending');
-  }
-
-  get completedTasks(): Task[] {
-    return this.tasks().filter(task => task.status === 'completed');
-  }
-
-  get expiredTasks(): Task[] {
-    return this.tasks().filter(task =>
-      (task.status === 'pending' || task.status === 'in_progress' || task.status === 'overdue') &&
-      task.dueDate &&
-      new Date(task.dueDate) < new Date()
-    );
   }
 
   addTask(title: string): void {
@@ -66,38 +42,38 @@ export class TaskComponent implements OnInit {
         project: '',
         user_id: null
       };
-
-      this.taskService.addTask(newTask).subscribe(); // ya actualiza la signal internamente
+      this.taskService.addTask(newTask).subscribe(); 
     }
   }
 
   toggleComplete(id: number): void {
-    const task = this.tasks().find(t => t.id === id);
+    // Accede a la tarea de la señal base del servicio
+    const task = this.taskService.tasks().find(t => t.id === id);
     if (!task) return;
 
-    this.taskService.toggleComplete(task).subscribe({ // Updated subscribe syntax
-      next: () => {
-        const updated = this.tasks().find(t => t.id === id);
-        if (updated && this.selectedTask?.id === id) {
-          this.selectedTask = { ...updated };
+    this.taskService.toggleComplete(task).subscribe({
+      next: (updatedTask) => {
+        if (this.selectedTask?.id === id) {
+          this.selectedTask = { ...updatedTask };
         }
-      }
+      },
+      error: (err) => console.error('Error al cambiar el estado de la tarea:', err)
     });
   }
 
   deleteTask(id: number): void {
-    this.taskService.deleteTask(id).subscribe({ // Updated subscribe syntax
+    this.taskService.deleteTask(id).subscribe({
       next: () => {
         if (this.selectedTask?.id === id) {
           this.selectedTask = null;
         }
-      }
+      },
+      error: (err) => console.error('Error al eliminar tarea:', err)
     });
   }
 
   openTaskDetails(task: Task): void {
     this.selectedTask = { ...task };
-    // Reset reminderDaysBefore when opening a new task's details
     this.selectedTask.reminderDaysBefore = undefined;
 
     this.reminderService.getReminderForTask(task.id).subscribe({
@@ -105,17 +81,14 @@ export class TaskComponent implements OnInit {
         if (reminder && this.selectedTask) {
           const reminderDate = new Date(reminder.reminderTime);
           const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-
           if (dueDate) {
-            // Calculate daysBefore as a positive number (how many days before dueDate)
             const diffTime = dueDate.getTime() - reminderDate.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); // Use round for integer days
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
             this.selectedTask.reminderDaysBefore = diffDays;
           }
         }
       },
       error: (err) => {
-        // If no reminder is found (404), or another error, ensure reminderDaysBefore is clear
         console.error('Error al obtener recordatorio:', err);
         this.selectedTask!.reminderDaysBefore = undefined;
       }
@@ -127,27 +100,32 @@ export class TaskComponent implements OnInit {
   }
 
   saveTaskDetails(): void {
-    if (this.selectedTask && this.selectedTask.status !== 'completed') {
-      if (!this.isValidStatus(this.selectedTask.status)) {
-        this.selectedTask.status = 'pending';
+    if (this.selectedTask && this.selectedTask.id && this.selectedTask.status !== 'completed') {
+      if (this.selectedTask.dueDate) {
+          this.selectedTask.dueDate = new Date(this.selectedTask.dueDate).toISOString().split('T')[0];
       }
 
-      this.taskService.updateTask(this.selectedTask).subscribe({ // Updated subscribe syntax
-        next: () => {
-          this.closeDetails(); // actualiza internamente
-        }
+      this.taskService.updateTask(this.selectedTask).subscribe({
+        next: (updatedTask) => {
+          console.log('Tarea actualizada con éxito:', updatedTask);
+          this.closeDetails();
+        },
+        error: (err) => console.error('Error al guardar detalles de la tarea:', err)
       });
+    } else if (this.selectedTask?.status === 'completed') {
+      alert('No puedes editar una tarea completada. Desmárcala como completada primero.');
     }
   }
 
   duplicateTask(id: number): void {
-    const task = this.tasks().find(t => t.id === id);
+    const task = this.taskService.tasks().find(t => t.id === id); // Accede a la tarea desde la señal del servicio
     if (!task) return;
 
-    this.taskService.duplicateTask(task).subscribe({ // Updated subscribe syntax
+    this.taskService.duplicateTask(task).subscribe({
       next: () => {
-        this.closeDetails(); // la nueva tarea se añade automáticamente
-      }
+        this.closeDetails();
+      },
+      error: (err) => console.error('Error al duplicar tarea:', err)
     });
   }
 
@@ -173,12 +151,8 @@ export class TaskComponent implements OnInit {
     }
   }
 
-  private isValidStatus(status: string): status is Task['status'] {
-    return ['pending', 'in_progress', 'completed', 'overdue'].includes(status);
-  }
-
   updateTaskReminder(): void {
-    if (!this.selectedTask || !this.selectedTask.dueDate) { // Added check for dueDate
+    if (!this.selectedTask || !this.selectedTask.dueDate) { 
       console.warn('Cannot set reminder: Task or Due Date is missing.');
       return;
     }
@@ -229,13 +203,11 @@ export class TaskComponent implements OnInit {
         },
         error: (err) => {
           console.warn('No reminder to delete or error fetching reminder:', err);
-          // No reminder found, so nothing to delete. Handle gracefully.
         }
       });
     }
   }
 
-  // --- NEW METHOD ADDED HERE ---
   calculateReminderDate(dueDate: string | Date | undefined, daysBefore: number | undefined): Date | null {
     if (!dueDate || daysBefore === undefined || daysBefore === null) {
       return null;
