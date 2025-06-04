@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, WritableSignal, signal, effect  } from '@angular/core';
+import { Component, OnInit, OnDestroy, WritableSignal, signal, effect } from '@angular/core';
 import { TaskService } from '../../services/task.service';
 import { EventService } from '../../services/event.service';
 import { Task } from '../../shared/interfaces/task.interface';
@@ -7,6 +7,7 @@ import { CommonModule, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { NavComponent } from '../../shared/components/nav/nav.component';
+import { ReminderService } from '../../services/reminder.service';
 
 
 @Component({
@@ -22,7 +23,6 @@ export class CalendarComponent implements OnInit {
   showEventForm = false;
   showTaskForm = false;
   viewMode: 'month' | 'week' | 'day' = 'month';
-
   hours: number[] = Array.from({ length: 24 }, (_, i) => i);
   weekDays: { name: string, date: Date }[] = [];
 
@@ -40,7 +40,8 @@ export class CalendarComponent implements OnInit {
     title: '',
     startTime: '',
     endTime: '',
-    description: ''
+    description: '',
+    remindersHoursBefore: null
   };
 
   newTask: Partial<Task> = {
@@ -50,8 +51,9 @@ export class CalendarComponent implements OnInit {
 
   constructor(
     private taskService: TaskService,
-    private eventService: EventService
-  ) {  }
+    private eventService: EventService,
+    private reminderService: ReminderService
+  ) { }
 
 
   ngOnInit(): void {
@@ -216,36 +218,60 @@ export class CalendarComponent implements OnInit {
     });
 
   }
-  
+
 
   getEventsForDate(date: Date): (CalendarEvent | Task)[] {
-    const dateStr = date.toISOString().split('T')[0];
-    const allEvents = this.eventService.events(); 
-    const allTasks = this.taskService.tasks(); 
+    // Normalizar la fecha de entrada (sin horas/minutos/segundos)
+    const normalizedInputDate = new Date(date);
+    normalizedInputDate.setHours(0, 0, 0, 0);
+    const inputDateStr = normalizedInputDate.toISOString().split('T')[0];
 
-    const timedEvents = allEvents.filter((event: CalendarEvent) =>
-      event.startTime && event.startTime.split('T')[0] === dateStr
-    );
+    const allEvents = this.eventService.events();
+    const allTasks = this.taskService.tasks();
 
-    const tasksWithDueDate = allTasks.filter((task: Task) =>
-      task.dueDate && task.dueDate.split('T')[0] === dateStr
-    );
+    // Filtrar eventos
+    const timedEvents = allEvents.filter((event: CalendarEvent) => {
+      if (!event.startTime) return false;
 
+      // Normalizar fecha del evento
+      const eventDate = new Date(event.startTime);
+      eventDate.setHours(0, 0, 0, 0);
+      const eventDateStr = eventDate.toISOString().split('T')[0];
+
+      return eventDateStr === inputDateStr;
+    });
+
+    // Filtrar tareas
+    const tasksWithDueDate = allTasks.filter((task: Task) => {
+      if (!task.dueDate) return false;
+
+      // Normalizar fecha de la tarea
+      const taskDate = new Date(task.dueDate);
+      taskDate.setHours(0, 0, 0, 0);
+      const taskDateStr = taskDate.toISOString().split('T')[0];
+
+      return taskDateStr === inputDateStr;
+    });
+
+    // Combinar y ordenar
     const combinedItems: (CalendarEvent | Task)[] = [...timedEvents, ...tasksWithDueDate];
 
     combinedItems.sort((a, b) => {
       const aIsTask = this.isTask(a);
       const bIsTask = this.isTask(b);
 
+      // Tareas después de eventos
       if (aIsTask && !bIsTask) return 1;
       if (!aIsTask && bIsTask) return -1;
 
+      // Ordenar tareas por fecha de vencimiento
       if (aIsTask && bIsTask) {
         const dateA = (a as Task).dueDate ? new Date((a as Task).dueDate!).getTime() : Infinity;
         const dateB = (b as Task).dueDate ? new Date((b as Task).dueDate!).getTime() : Infinity;
         return dateA - dateB;
       }
 
+      // Ordenar eventos por hora de inicio
       if (!aIsTask && !bIsTask) {
         const dateA = new Date((a as CalendarEvent).startTime).getTime();
         const dateB = new Date((b as CalendarEvent).startTime).getTime();
@@ -260,10 +286,9 @@ export class CalendarComponent implements OnInit {
 
 
 
-  
   getTimedEventsForDate(date: Date): CalendarEvent[] {
     const dateStr = date.toISOString().split('T')[0];
-    const allEvents = this.eventService.events(); 
+    const allEvents = this.eventService.events();
 
 
     return allEvents.filter((event: CalendarEvent) =>
@@ -275,7 +300,7 @@ export class CalendarComponent implements OnInit {
 
   getTasksWithDueDateForDate(date: Date): Task[] {
     const dateStr = date.toISOString().split('T')[0];
-    const allTasks = this.taskService.tasks(); 
+    const allTasks = this.taskService.tasks();
 
     return allTasks.filter((task: Task) =>
       task.dueDate && task.dueDate.split('T')[0] === dateStr
@@ -287,7 +312,7 @@ export class CalendarComponent implements OnInit {
     const targetMonth = date.getMonth();
     const targetDay = date.getDate();
 
-    const allEvents = this.eventService.events(); 
+    const allEvents = this.eventService.events();
 
     return allEvents.filter((event: CalendarEvent) => {
       if (!event.startTime) return false;
@@ -296,7 +321,7 @@ export class CalendarComponent implements OnInit {
       const eventYear = eventStart.getFullYear();
       const eventMonth = eventStart.getMonth();
       const eventDay = eventStart.getDate();
-      const eventHour = eventStart.getHours(); 
+      const eventHour = eventStart.getHours();
       return (
         eventYear === targetYear &&
         eventMonth === targetMonth &&
@@ -362,13 +387,21 @@ export class CalendarComponent implements OnInit {
 
     this.timeError = false;
 
+    const reminderTime = this.newEvent.remindersHoursBefore !== null && this.newEvent.remindersHoursBefore !== undefined
+      ? this.calculateEventReminderTime(start.toISOString(), this.newEvent.remindersHoursBefore)
+      : null;
+
     const updatedEvent = {
       ...this.newEvent,
       startTime: start.toISOString(),
-      endTime: end.toISOString()
+      endTime: end.toISOString(),
+      eventReminderId: undefined, // Resetear el ID del recordatorio existente
+      reminderTime: reminderTime 
     };
 
     this.newEvent = updatedEvent;
+
+    
   }
 
 
@@ -391,57 +424,63 @@ export class CalendarComponent implements OnInit {
 
     this.endHour = defaultEndTime.getHours();
     this.endMinute = defaultEndTime.getMinutes();
-    
+
 
     if (this.startHour === 23) {
 
-        this.endHour = 23;
-        this.endMinute = 59;
+      this.endHour = 23;
+      this.endMinute = 59;
     } else {
 
-        const defaultEndTime = new Date(
-            date.getFullYear(), 
-            date.getMonth(), 
-            date.getDate(), 
-            this.startHour, 
-            this.startMinute
-        );
-        defaultEndTime.setHours(defaultEndTime.getHours() + 1);
-        
-        this.endHour = defaultEndTime.getHours();
-        this.endMinute = defaultEndTime.getMinutes();
-                
+      const defaultEndTime = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        this.startHour,
+        this.startMinute
+      );
+      defaultEndTime.setHours(defaultEndTime.getHours() + 1);
+
+      this.endHour = defaultEndTime.getHours();
+      this.endMinute = defaultEndTime.getMinutes();
+
     }
 
 
     const start = new Date(
-        date.getFullYear(), 
-        date.getMonth(), 
-        date.getDate(), 
-        this.startHour, 
-        this.startMinute
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      this.startHour,
+      this.startMinute
     );
-    
+
     const end = new Date(
-        date.getFullYear(), 
-        date.getMonth(), 
-        date.getDate(), 
-        this.endHour, 
-        this.endMinute
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      this.endHour,
+      this.endMinute
     );
 
     this.newEvent = {
-        title: '',
-        startTime: start.toISOString(),
-        endTime: end.toISOString(),
-        description: '',
-        createdAt: null,
-        user_id: null,
-        category_id: null
+      title: '',
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+      description: '',
+      createdAt: null,
+      user_id: null,
+      category_id: null,
+      remindersHoursBefore: null, // MODIFIED: Reset to null for new event
+      eventReminderId: undefined
     };
-    
+
     this.timeError = false;
     this.showEventForm = true;
+    const reminderTime = this.calculateEventReminderTime(
+      this.newEvent.startTime,
+      this.newEvent.remindersHoursBefore ?? undefined
+    );
   }
 
 
@@ -484,14 +523,15 @@ export class CalendarComponent implements OnInit {
       ...event,
       createdAt: null,
       user_id: null,
-      category_id: null
+      category_id: null,
+      remindersHoursBefore: null,
+      eventReminderId: undefined
     };
 
     const startDate = new Date(this.newEvent.startTime!);
     const endDate = new Date(this.newEvent.endTime!);
 
     this.eventDate = formatDate(startDate, 'yyyy-MM-dd', 'en-US');
-
     this.startHour = startDate.getHours();
     this.startMinute = startDate.getMinutes();
     this.endHour = endDate.getHours();
@@ -501,7 +541,73 @@ export class CalendarComponent implements OnInit {
     this.showEventForm = true;
 
     this.updateEventTimes();
+
+    if (event.id) {
+      this.reminderService.getEventReminderForEvent(event.id).subscribe({
+        next: (eventReminder) => {
+          if (eventReminder) {
+            // Calculate hours before based on reminder time and event start time
+            const calculatedHoursBefore = this.calculateHoursBefore(
+              new Date(event.startTime!),
+              new Date(eventReminder.reminderTime)
+            );
+
+            this.newEvent = {
+              ...this.newEvent,
+              eventReminderId: eventReminder.id,
+              remindersHoursBefore: calculatedHoursBefore
+            };
+          }
+        },
+        error: (err) => {
+          console.error('Error fetching event reminder:', err);
+          this.newEvent = { ...this.newEvent, remindersHoursBefore: null, eventReminderId: undefined };
+        }
+      });
+    }
   }
+
+  calculateEventReminderTime(startTime: string | Date | undefined, hoursBefore: number | undefined): Date | null {
+    // 1. Validación de datos
+    if (!startTime || hoursBefore === undefined || hoursBefore === null) {
+      return null;
+    }
+
+    // 2. Convertir a objeto Date
+    const eventStart = new Date(startTime);
+
+    // 3. Crear fecha recordatorio
+    const reminderTime = new Date(eventStart);
+
+    // 4. Restar las horas (aquí la diferencia clave con tasks)
+    reminderTime.setHours(reminderTime.getHours() - hoursBefore);
+
+    return reminderTime;
+  }
+  // NEW: Helper to calculate remindersHoursBefore from actual times (for editEvent)
+  private calculateHoursBefore(eventStartTime: Date, reminderTime: Date): number | null {
+    const diffMs = eventStartTime.getTime() - reminderTime.getTime();
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60)); // Round to nearest hour
+
+    // Check if the difference matches our known options
+    if ([1, 2, 12, 24].includes(diffHours)) {
+      return diffHours;
+    }
+    return null; // No match found, or not a standard option
+  }
+
+
+  // This method now just ensures the newEvent.remindersHoursBefore is set
+  updateEventReminder(): void {
+    // The ngModel change already updates newEvent.remindersHoursBefore.
+    // We just need to make sure the calculated time is updated if needed.
+    const reminderTime = this.calculateEventReminderTime(
+      this.newEvent.startTime,
+      this.newEvent.remindersHoursBefore ?? undefined
+    );
+  }
+
+
 
 
   saveEvent(): void {
@@ -525,13 +631,39 @@ export class CalendarComponent implements OnInit {
       alert('La hora de fin debe ser posterior a la hora de inicio y no puede exceder la medianoche del día siguiente.');
       return;
     }
+    const reminderTime = this.calculateEventReminderTime(
+      this.newEvent.startTime,
+      this.newEvent.remindersHoursBefore ?? undefined
+    );
 
     // Si id existe (y es distinto de null o undefined), actualizar; sino, crear nuevo
     if (event.id) {
-      this.eventService.updateEvent(event);
-    } else {
-      this.eventService.createEvent(event).subscribe({
+      this.eventService.updateEvent(event).subscribe({
         next: () => {
+          console.log('Evento actualizado:', event.id);
+          // Handle reminder update/creation/deletion after event update
+          this.handleEventReminderUpdate(event.id!, reminderTime, event.eventReminderId);
+          this.showEventForm = false;
+        },
+        error: (err) => {
+          console.error('Error al actualizar evento:', err);
+          alert('No se pudo actualizar el evento.');
+        }
+      });
+    } else {
+      // Create new event
+      this.eventService.createEvent(event).subscribe({
+        next: (createdEvent) => {
+          console.log('Evento creado:', createdEvent.id);
+          // Handle reminder creation after event creation
+          if (createdEvent.id && reminderTime) {
+            this.reminderService.createEventReminder(createdEvent.id, reminderTime).subscribe({
+              next: (response) => {
+                console.log('Recordatorio de evento creado:', response);
+              },
+              error: (err) => console.error('Error al crear recordatorio de evento:', err)
+            });
+          }
           this.showEventForm = false;
         },
         error: (err) => {
@@ -545,14 +677,85 @@ export class CalendarComponent implements OnInit {
     this.showEventForm = false;
   }
 
+  private handleEventReminderUpdate(eventId: number, reminderTime: Date | null, existingReminderId: number | undefined): void {
+    if (reminderTime && reminderTime.getTime() > new Date().getTime()) { // Only create/update if reminder time is in the future
+      if (existingReminderId) {
+        // Update existing reminder
+        this.reminderService.updateEventReminder(existingReminderId, reminderTime).subscribe({
+          next: (response) => console.log('Recordatorio de evento actualizado:', response),
+          error: (err) => console.error('Error al actualizar recordatorio de evento:', err)
+        });
+      } else {
+        // Create new reminder
+        this.reminderService.createEventReminder(eventId, reminderTime).subscribe({
+          next: (response) => console.log('Recordatorio de evento creado:', response),
+          error: (err) => console.error('Error al crear recordatorio de evento:', err)
+        });
+      }
+    } else if (existingReminderId) {
+      // If reminder option is 'none' or reminderTime is not valid/past, delete existing reminder
+      this.reminderService.deleteEventReminder(existingReminderId).subscribe({
+        next: () => console.log('Recordatorio de evento eliminado.'),
+        error: (err) => console.error('Error al eliminar recordatorio de evento:', err)
+      });
+    }
+  }
+
+
 
 
   deleteEvent(id: number): void {
     if (confirm('¿Estás seguro de que quieres eliminar este evento?')) {
-      this.eventService.deleteEvent(id);
-
-      this.showEventForm = false;
-
+      // First delete any associated reminder
+      this.reminderService.getEventReminderForEvent(id).subscribe({
+        next: (reminder) => {
+          if (reminder) {
+            this.reminderService.deleteEventReminder(reminder.id).subscribe({
+              next: () => {
+                // After deleting reminder, delete the event
+                this.eventService.deleteEvent(id).subscribe({
+                  next: () => {
+                    console.log('Event deleted:', id);
+                    this.showEventForm = false;
+                  },
+                  error: (err) => console.error('Error deleting event:', err)
+                });
+              },
+              error: (err) => {
+                console.error('Error deleting event reminder:', err);
+                // Still try to delete the event even if reminder deletion fails
+                this.eventService.deleteEvent(id).subscribe({
+                  next: () => {
+                    console.log('Event deleted after failed reminder deletion:', id);
+                    this.showEventForm = false;
+                  },
+                  error: (err) => console.error('Error deleting event:', err)
+                });
+              }
+            });
+          } else {
+            // No reminder found, just delete the event
+            this.eventService.deleteEvent(id).subscribe({
+              next: () => {
+                console.log('Event deleted (no reminder):', id);
+                this.showEventForm = false;
+              },
+              error: (err) => console.error('Error deleting event:', err)
+            });
+          }
+        },
+        error: (err) => {
+          console.error('Error checking for event reminder:', err);
+          // Still try to delete the event even if reminder check fails
+          this.eventService.deleteEvent(id).subscribe({
+            next: () => {
+              console.log('Event deleted after failed reminder check:', id);
+              this.showEventForm = false;
+            },
+            error: (err) => console.error('Error deleting event:', err)
+          });
+        }
+      });
     }
   }
 
@@ -665,7 +868,7 @@ export class CalendarComponent implements OnInit {
     if (updated.dueDate) {
       // Aquí sabemos que updated.dueDate y updated.title no son undefined
       const taskToSave: Task = {
-        id : 0,
+        id: 0,
         title: updated.title!,               // ya validamos que existe y no está vacío
         status: 'pending',
         createdAt: new Date().toISOString(),

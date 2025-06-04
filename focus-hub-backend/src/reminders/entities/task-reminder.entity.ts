@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index, O
 import { Task } from '../../tasks/task.entity';
 
 @Entity('task_reminders')
-@Index('tasks_id_UNIQUE', ['taskId'], { unique: true })
+@Index('tasks_id_UNIQUE', ['taskId'], { unique: true }) 
 export class TaskReminder {
   @PrimaryGeneratedColumn()
   id: number;
