@@ -7,6 +7,8 @@ app-techniques {
     align-items: center;
 }
 
+*
+
 main {
     display: flex;
     flex-direction: column;
@@ -157,12 +159,10 @@ select {
 .associated-tasks {
     background-color: var(--secondary-bg);
     border-radius: 1rem;
-    padding: 1.5rem;
-    margin-top: 2rem;
+
 }
 
-.associated-tasks h3 {
-    margin-bottom: 1rem;
+.associated-tasks h3, .session-tasks h3 {
     font-size: 1.2rem;
 }
 
@@ -175,28 +175,125 @@ select {
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.75rem;
-    padding: 0.5rem;
+    padding: 0.8rem;
     border-radius: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color:white;
+    font-weight: 500;
+
 }
 
-.task-item input[type="checkbox"] {
+/* .task-item input[type="checkbox"] {
     width: 18px;
     height: 18px;
     accent-color: var(--accent-color);
+} */
+
+.task-item input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #dcdcdc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.btn-add-task {
-    padding: 0.5rem 1rem;
-    background-color: transparent;
-    color: var(--accent-color);
-    border: 1px solid var(--accent-color);
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-weight: 500;
-    width: 100%;
+.task-item input[type="checkbox"]:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
 }
 
+.task-item input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--accent-color), #6c63ff);
+  border: none;
+}
+
+.task-item input[type="checkbox"]:checked::after {
+  content: "✔";
+  color: white;
+  font-size: 12px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-add-to-session {
+  margin-left: auto;
+
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+  border: none;
+
+  background-color: #eef1f5; /* gris claro suave */
+  color: #3b82f6; /* azul moderno */
+
+  font-size: 25px;
+  font-weight: 500;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover */
+.btn-add-to-session:hover {
+  background-color: #e0e7ff;
+  transform: scale(1.05);
+}
+
+/* Active */
+.btn-add-to-session:active {
+  transform: scale(0.95);
+}
+
+/* Disabled */
+.btn-add-to-session:disabled {
+  background-color: #f3f4f6;
+  color: #c0c4cc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-remove-from-session {
+  margin-left: auto;
+
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+  border: none;
+
+  background-color: #fef2f2; /* rojo muy suave */
+  color: #ef4444; /* rojo moderno */
+
+  font-size: 20px;
+  font-weight: 500;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover */
+.btn-remove-from-session:hover {
+  background-color: #fee2e2;
+  transform: scale(1.05);
+}
+
+/* Active */
+.btn-remove-from-session:active {
+  transform: scale(0.95);
+}
 
 .modal {
     display: none;

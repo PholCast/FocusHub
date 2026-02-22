@@ -1,17 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { MyLogger } from './logger.service';
+// import { MyLogger } from './logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
 
 
-  const myLoggerInstance = app.get(MyLogger);
+  // const myLoggerInstance = app.get(MyLogger);
 
 
-  app.useLogger(myLoggerInstance);
+  // app.useLogger(myLoggerInstance);
 
   app.enableCors();
 

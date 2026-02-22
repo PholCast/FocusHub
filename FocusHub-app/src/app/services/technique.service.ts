@@ -2,39 +2,21 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Technique } from '../shared/interfaces/technique.interface';
 import { TokenService } from './token.service';
-import { Observable, tap } from 'rxjs';
+import { Observable, forkJoin, of, tap, catchError, map } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TechniqueService {
-  private readonly defaultTechniques: Technique[] = [
-    {
-      name: 'Pomodoro (25/5/15)',
-      workTime: 25 * 60,
-      shortBreak: 5 * 60,
-      longBreak: 15 * 60,
-    },
-    {
-      name: 'Técnica 52/17',
-      workTime: 52 * 60,
-      shortBreak: 17 * 60,
-      longBreak: 0,
-    },
-    {
-      name: 'Técnica 90/20',
-      workTime: 90 * 60,
-      shortBreak: 20 * 60,
-      longBreak: 0,
-    },
-  ];
 
-  public techniques = signal<Technique[]>([...this.defaultTechniques]);
-  public techniquesMap = signal<Record<string, Technique>>(
-    this.buildTechniqueMap(this.defaultTechniques)
-  );
+
+  public techniques = signal<Technique[]>([]);
+  public techniquesMap = signal<Record<string, Technique>>({});
+  public currentFocusSessionId = signal<number | null>(null);
 
   private readonly baseUrl = 'http://localhost:3000/productivity/techniques';
+  private readonly sessionsUrl = 'http://localhost:3000/productivity/focus-sessions';
+  private readonly sessionTasksUrl = 'http://localhost:3000/productivity/focus-session-tasks';
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
 
@@ -43,52 +25,38 @@ export class TechniqueService {
     return this.tokenService.decodeToken()?.sub ?? null;
   }
 
-  fetchTechniques(): Observable<Technique[]> {
-    const userId = this.getUserId();
-    if (!userId) {
-      console.error('❌ No userId found');
-      return new Observable<Technique[]>(); // observable vacío
-    }
+fetchTechniques(): Observable<Technique[]> {
+  const userId = this.getUserId();
+  console.log(`🔄 Fetching techniques (global + user${userId ? ` ${userId}` : ''})`);
 
-    console.log(`🔄 Fetching techniques for userId: ${userId}`);
+  const global$ = this.http
+    .get<Technique[]>(`${this.baseUrl}/global`, this.getHeaders())
+    .pipe(catchError(() => of([])));
 
-    return this.http.get<Technique[]>(`${this.baseUrl}?userId=${userId}`, this.getHeaders()).pipe(
-      tap((fetched) => {
-        console.log('📦 Techniques fetched from server:', fetched);
+  const user$ = userId
+    ? this.http
+        .get<Technique[]>(`${this.baseUrl}?userId=${userId}`, this.getHeaders())
+        .pipe(catchError(() => of([])))
+    : of([]);
 
-        const current = this.techniques();
-        console.log('📂 Current techniques in signal:', current);
+  return forkJoin([global$, user$]).pipe(
+    map(([global, user]) => [...global, ...user]),
+    tap((fetched) => {
+      console.log('📦 Techniques fetched from server (merged):', fetched);
 
-        const merged = [...current];
+      // 1️⃣ Actualizamos el array
+      this.techniques.set(fetched);
 
-        fetched.forEach((newT) => {
-          const exists = current.some(t => t.name === newT.name);
-          if (!exists) {
-            console.log(`➕ Adding new technique: ${newT.name}`);
-            merged.push(newT);
-          } else {
-            console.log(`✅ Technique already exists: ${newT.name}`);
-          }
-        });
+      // 2️⃣ Construimos el mapa desde cero
+      const newMap: Record<string, Technique> = {};
+      fetched.forEach(t => {
+        newMap[t.name] = t;
+      });
 
-        this.techniques.set(merged);
-        console.log('✅ Updated techniques signal:', this.techniques());
-
-        const currentMap = { ...this.techniquesMap() };
-        fetched.forEach(t => {
-          if (!currentMap[t.name]) {
-            console.log(`🗺️ Adding to techniquesMap: ${t.name}`);
-            currentMap[t.name] = t;
-          } else {
-            console.log(`📌 Already in techniquesMap: ${t.name}`);
-          }
-        });
-
-        this.techniquesMap.set(currentMap);
-        console.log('✅ Updated techniquesMap signal:', this.techniquesMap());
-      })
-    );
-  }
+      this.techniquesMap.set(newMap);
+    })
+  );
+}
 
   getTechnique(name: string): Technique | undefined {
     return this.techniquesMap()[name];
@@ -179,5 +147,44 @@ export class TechniqueService {
       acc[t.name] = t;
       return acc;
     }, {} as Record<string, Technique>);
+  }
+
+  // Focus Sessions Methods
+  createFocusSession(userId: number, techniqueId: number): Observable<any> {
+    const sessionData = {
+      userId,
+      techniqueId,
+      status: 'in_progress',
+    };
+    return this.http.post<any>(`${this.sessionsUrl}`, sessionData, this.getHeaders()).pipe(
+      tap((session) => {
+        this.currentFocusSessionId.set(session.id);
+        console.log('✅ Focus session created:', session);
+      })
+    );
+  }
+
+  updateFocusSessionStatus(sessionId: number, status: 'in_progress' | 'paused' | 'completed'): Observable<any> {
+    return this.http.patch<any>(`${this.sessionsUrl}/${sessionId}`, { status }, this.getHeaders()).pipe(
+      tap((session) => {
+        console.log(`✅ Focus session updated to ${status}:`, session);
+      })
+    );
+  }
+
+  addTaskToFocusSession(focusSessionId: number, taskId: number): Observable<any> {
+    return this.http.post<any>(`${this.sessionTasksUrl}`, { focusSessionId, taskId }, this.getHeaders()).pipe(
+      tap((focusSessionTask) => {
+        console.log('✅ Task added to focus session:', focusSessionTask);
+      })
+    );
+  }
+
+  removeTaskFromFocusSession(focusSessionId: number, taskId: number): Observable<any> {
+    return this.http.delete<any>(`${this.sessionsUrl}/${focusSessionId}/tasks/${taskId}`, this.getHeaders()).pipe(
+      tap(() => {
+        console.log(`✅ Task ${taskId} removed from focus session ${focusSessionId}`);
+      })
+    );
   }
 }

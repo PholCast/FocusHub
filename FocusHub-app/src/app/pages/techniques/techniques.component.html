@@ -5,10 +5,8 @@
             <h1>⏰ Técnicas de Concentración</h1>
             <div class="technique-selector">
                 <select #techniqueSelect (change)="changeTechnique($event)">
-                    <option value="pomodoro">Pomodoro (25/5/15)</option>
-                    <option value="5217">Técnica 52/17</option>
-                    <option value="9020">Técnica 90/20</option>
-                    </select>
+                    <option *ngFor="let t of techniques" [value]="t.name">{{ t.name }}</option>
+                </select>
                 <button (click)="showNewTechniqueModal()" class="btn-add">+ Nueva Técnica</button>
             </div>
         </header>
@@ -16,11 +14,15 @@
         <main>
             <div class="timer-tabs" #tabButtons>
                 <button (click)="setActiveTab(0)" class="tab-btn" [class.active]="activeTabIndex() === 0">Sesión de concentración</button>
-                <button (click)="setActiveTab(1)" class="tab-btn" [class.active]="activeTabIndex() === 1">Descanso Corto</button>
+                <button (click)="setActiveTab(1)" class="tab-btn" [class.active]="activeTabIndex() === 1"
+                    [disabled]="techniqueService.currentFocusSessionId() !== null"
+                    title="No puedes cambiar a descanso mientras hay una sesión activa">Descanso Corto</button>
                 @if(this.currentTechnique.longBreak != 0){
-                <button (click)="setActiveTab(2)" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
+                <button (click)="setActiveTab(2)" class="tab-btn" [class.active]="activeTabIndex() === 2"
+                        [disabled]="techniqueService.currentFocusSessionId() !== null"
+                        title="No puedes cambiar a descanso mientras hay una sesión activa">Descanso Largo</button>
                 }@else{
-                    <button disabled style="opacity: 0.5;" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button> 
+                    <button disabled style="opacity: 0.5;" class="tab-btn" [class.active]="activeTabIndex() === 2">Descanso Largo</button>
                 }
             </div>
 
@@ -36,23 +38,58 @@
                 <button (click)="resetTimer()" class="control-btn reset">REINICIAR</button>
             </div>
 
-            <div class="associated-tasks">
-                <h3>Tareas Asociadas</h3>
-                <div class="tasks-list">
-                    <div class="task-item">
-                        <input type="checkbox" id="task1">
-                        <label for="task1">Completar informe de proyecto</label>
-                    </div>
-                    <div class="task-item">
-                        <input type="checkbox" id="task2">
-                        <label for="task2">Revisar documentación</label>
-                    </div>
-                    <div class="task-item">
-                        <input type="checkbox" id="task3">
-                        <label for="task3">Preparar presentación</label>
+            <div style="display: flex; gap: 30px; margin-top: 30px; width: 100%; justify-content: center; ">
+                <div class="associated-tasks" style="flex: 1;">
+                    <h3>Tareas Asociadas</h3>
+                    <div class="tasks-list">
+                        <div class="task-item" *ngFor="let task of pendingTasks">
+                            <input type="checkbox"
+                                   [id]="'task-' + task.id"
+                                   [checked]="task.status === 'completed'"
+                                   (change)="toggleTaskComplete(task)">
+                            <label [for]="'task-' + task.id">{{ task.title }}</label>
+                                <button class="btn-add-to-session"
+                                    (click)="addTaskToSession(task)"
+                                    [disabled]="isTaskInSession(task.id) || currentMode !== 'work'"
+                                    title="Solo puedes agregar tareas durante una sesión de trabajo">
+                                +
+                            </button>
+                        </div>
+                        <div *ngIf="pendingTasks.length === 0" style="padding: 10px; color: #999;">
+                            No hay tareas pendientes
+                        </div>
                     </div>
                 </div>
-                <button class="btn-add-task">+ Añadir Tarea</button>
+
+                <div class="session-tasks" style="flex: 1; gap: 20px;">
+                    <h3>Tareas de Sesión</h3>
+                    <div class="tasks-list">
+                        <div class="task-item" *ngFor="let task of sessionTasks()">
+                            <input type="checkbox"
+                                   [id]="'session-task-' + task.id"
+                                   [checked]="task.status === 'completed'"
+                                   [disabled]="!isRunning"
+                                   (change)="toggleSessionTaskComplete(task)">
+                            <label [for]="'session-task-' + task.id">{{ task.title }}</label>
+                            <button class="btn-remove-from-session"
+                                    (click)="removeTaskFromSession(task.id)"
+                                    >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+    <path d="M6 6L18 18M6 18L18 6"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="round"/>
+  </svg>
+                            </button>
+                        </div>
+                        <div *ngIf="sessionTasks().length === 0" style="padding: 10px;color: #999;">
+                            Sin tareas en sesión
+                        </div>
+                    </div>
+                    <div *ngIf="!isRunning && sessionTasks().length > 0" style="text-align: center; color: #ff6b6b; font-size: 12px;">
+                        ⚠️ Inicia la sesión para completar tareas
+                    </div>
+                </div>
             </div>
         </main>
 

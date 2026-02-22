@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
-import { MyLogger } from '../logger.service';
+// import { MyLogger } from '../logger.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login-request.dto';
 import { SignUpDto } from './dto/sign-up-request.dto';
@@ -15,7 +15,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    private readonly logger: MyLogger,
+    // private readonly logger: MyLogger,
     private readonly jwtService: JwtService
 
 
@@ -39,7 +39,7 @@ export class AuthService {
       soundEnabled: true,
     });
 
-    this.logger.log(`Creating user...${newUser.email} - ${newUser.name}`);
+    // this.logger.log(`Creating user...${newUser.email} - ${newUser.name}`);
     return this.usersRepository.save(newUser);
   }
 
@@ -60,7 +60,7 @@ export class AuthService {
     const payload = { email: user.email, sub: user.id };
 
 
-    this.logger.log(`User logged in...${user.email} - ${user.name}`);
+    // this.logger.log(`User logged in...${user.email} - ${user.name}`);
     return {
       access_token: this.jwtService.sign(payload),
       user: {

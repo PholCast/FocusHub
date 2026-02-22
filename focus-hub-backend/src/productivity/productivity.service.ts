@@ -105,6 +105,38 @@ export class ProductivityService {
     return this.focusSessionRepository.save(focusSession);
   }
 
+  async removeTaskFromFocusSession(
+  focusSessionId: number,
+  taskId: number,
+  userId: number
+): Promise<void> {
+
+  // Verificar que la sesión pertenece al usuario
+  const focusSession = await this.focusSessionRepository.findOne({
+    where: { id: focusSessionId, user: { id: userId } },
+  });
+
+  if (!focusSession) {
+    throw new NotFoundException('Focus session not found for this user');
+  }
+
+  // Buscar la relación específica
+  const focusSessionTask = await this.focusSessionTaskRepository.findOne({
+    where: {
+      focusSession: { id: focusSessionId },
+      task: { id: taskId },
+    },
+  });
+
+  if (!focusSessionTask) {
+    throw new NotFoundException(
+      `Task ${taskId} is not linked to focus session ${focusSessionId}`
+    );
+  }
+
+  await this.focusSessionTaskRepository.remove(focusSessionTask);
+}
+
   async findAllFocusSessions(userId: number): Promise<FocusSession[]> {
     return this.focusSessionRepository.find({
       where: { user: { id: userId } },

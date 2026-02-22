@@ -11,7 +11,7 @@ import { ProductivityModule } from './productivity/productivity.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { MyLogger } from './logger.service';
+// import { MyLogger } from './logger.service';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -22,10 +22,10 @@ import { MyLogger } from './logger.service';
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: '1234',
+      password: '',
       database: 'focushubdatabase',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      // synchronize: true,
+      synchronize: true,
       logging: true,
     }),
     UsersModule,
@@ -38,6 +38,6 @@ import { MyLogger } from './logger.service';
     AuthModule
     ],
   controllers: [AppController],
-  providers: [AppService,MyLogger],
+  providers: [AppService],
 })
 export class AppModule {}

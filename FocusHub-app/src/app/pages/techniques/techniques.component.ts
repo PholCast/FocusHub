@@ -4,7 +4,10 @@ import { interval, Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NavComponent } from '../../shared/components/nav/nav.component';
 import { Technique } from '../../shared/interfaces/technique.interface';
-import { TechniqueService } from '../../services/technique.service'; // ajusta la ruta si es diferente
+import { Task } from '../../shared/interfaces/task.interface';
+import { TechniqueService } from '../../services/technique.service';
+import { TaskService } from '../../services/task.service';
+import { TokenService } from '../../services/token.service';
 
 @Component({
   selector: 'app-techniques',
@@ -15,12 +18,14 @@ import { TechniqueService } from '../../services/technique.service'; // ajusta l
 })
 export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   techniqueService = inject(TechniqueService);
+  taskService = inject(TaskService);
+  tokenService = inject(TokenService);
 
   currentTechnique: Technique = {
-    name: 'Pomodoro',
-    workTime: 25 * 60,
-    shortBreak: 5 * 60,
-    longBreak: 15 * 60,
+    name: '',
+    workTime: 0,
+    shortBreak: 0,
+    longBreak: 0,
   };
 
   currentMode: 'work' | 'shortBreak' | 'longBreak' = 'work';
@@ -33,9 +38,19 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   isNewTechniqueModalVisible = signal(false);
   activeTabIndex = signal(0);
-  timeLeft = signal(this.currentTechnique.workTime); 
+  timeLeft = signal(this.currentTechnique.workTime);
+  sessionTasks = signal<Task[]>([]);
+  focusSessionStatus: 'in_progress' | 'paused' | 'completed' | null = null;
 
   fb = inject(FormBuilder);
+
+  get techniques(): Technique[] {
+    return this.techniqueService.techniques();
+  }
+
+  get pendingTasks() {
+    return this.taskService.pendingTasks();
+  }
 
   newTechniqueForm: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -53,81 +68,27 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('floatingTimerDisplay') floatingTimerDisplay!: ElementRef;
   @ViewChild('tabButtons') tabButtons!: ElementRef<HTMLCollectionOf<HTMLButtonElement>>;
 
-  
+
   constructor(private renderer: Renderer2) {
-    // ✅ Se suscribe explícitamente
+    this.taskService.loadTasks(); // Load tasks on init
     this.techniqueService.fetchTechniques().subscribe(() => {
-      this.renderTechniqueOptions();
-    });
-    // ✅ Este efecto se ejecuta en cada cambio del signal, pero también necesita subscribirse
-    effect(() => {
-      this.techniqueService.fetchTechniques().subscribe(); 
+      const list = this.techniqueService.techniques();
+      if (list && list.length > 0) {
+        // Try to find 'Pomodoro' or use the first technique
+        const pomodoro = list.find(t => t.name.toLowerCase().includes('pomodoro'));
+        this.currentTechnique = pomodoro || list[0];
+        this.timeLeft.set(this.currentTechnique.workTime);
+        this.updateTimerDisplay();
+        this.updateProgressCircle();
+      }
     });
   }
 
   ngOnInit(): void {
-    // ✅ También con .subscribe
-    this.techniqueService.fetchTechniques().subscribe(() => {
-      this.renderTechniqueOptions();
-    });
+    // Initialization is handled in constructor
   }
 
-  renderTechniqueOptions(): void {
-    const selectElement = this.techniqueSelect.nativeElement;
 
-    // 1. Borrar todas las opciones existentes del <select>.
-    // Esto asegura que la lista se reconstruya completamente cada vez
-    // que se actualizan las técnicas desde el servicio.
-    while (selectElement.options.length > 0) {
-      this.renderer.removeChild(selectElement, selectElement.options[0]);
-    }
-
-    // 2. Obtener las técnicas del servicio.
-    const techniques = this.techniqueService.techniquesMap();
-
-    // 3. Añadir cada técnica como una nueva opción al <select>.
-    for (const key in techniques) {
-      if (Object.prototype.hasOwnProperty.call(techniques, key)) {
-        const technique = techniques[key];
-        const option = this.renderer.createElement('option');
-        this.renderer.setProperty(option, 'value', key); // Ejemplo: 'pomodoro'
-        this.renderer.setProperty(option, 'textContent', technique.name); // Ejemplo: 'Pomodoro'
-        this.renderer.appendChild(selectElement, option);
-      }
-    }
-
-    // 4. Seleccionar la técnica "Pomodoro" por defecto o la primera disponible.
-    const pomodoroKey = 'pomodoro'; // La clave esperada para la técnica Pomodoro
-
-    if (techniques[pomodoroKey]) {
-      // Si la técnica Pomodoro existe en las técnicas cargadas, la establecemos como la actual
-      // y la seleccionamos en el dropdown.
-      this.currentTechnique = techniques[pomodoroKey];
-      this.renderer.setProperty(selectElement, 'value', pomodoroKey);
-    } else if (selectElement.options.length > 0) {
-      // Si Pomodoro no está disponible (lo cual idealmente no debería pasar si tu servicio la gestiona),
-      // seleccionamos la primera técnica de la lista.
-      selectElement.selectedIndex = 0;
-      const selectedKey = selectElement.options[selectElement.selectedIndex].value;
-      this.currentTechnique = this.techniqueService.techniquesMap()[selectedKey];
-    } else {
-      // Si no hay ninguna técnica cargada (por ejemplo, si el servicio devuelve una lista vacía),
-      // mantenemos la definición inicial de Pomodoro como un último recurso.
-      this.currentTechnique = {
-        name: 'Pomodoro',
-        workTime: 25 * 60,
-        shortBreak: 5 * 60,
-        longBreak: 15 * 60,
-      };
-      // No se puede seleccionar en el <select> si no hay opciones, pero al menos el componente tiene un estado.
-    }
-
-    // 5. Actualizar la interfaz de usuario con la técnica seleccionada.
-    this.timeLeft.set(this.currentTechnique.workTime);
-    this.updateTimerDisplay();
-    this.updateProgressCircle();
-    this.setActiveTab(0); // Esto asegura que la pestaña de "Trabajo" esté activa.
-  }
 
 
   ngAfterViewInit(): void {
@@ -175,18 +136,104 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   startTimer(): void {
     if (this.isRunning) return;
     this.isRunning = true;
+    // Only create or resume a focus session when in 'work' mode
+    if (this.currentMode !== 'work') {
+      // For breaks, just start the timer interval without creating sessions
+      this.startTimerInterval();
+      return;
+    }
 
+    // Work mode: if no session exists, create one
+    if (!this.techniqueService.currentFocusSessionId()) {
+      const tokenData = this.tokenService.decodeToken();
+      const userId = tokenData?.sub;
+      const techniqueId = (this.currentTechnique as any).id || 1; // fallback to 1 if no id
+
+      if (!userId) {
+        console.error('No userId found');
+        this.isRunning = false;
+        return;
+      }
+
+      this.techniqueService.createFocusSession(userId, techniqueId).subscribe({
+        next: (session) => {
+          console.log('Session created, starting timer', session);
+
+          // If there were tasks added locally before the session was created,
+          // persist those relations in the backend now.
+          const localSessionTasks = this.sessionTasks();
+          if (localSessionTasks && localSessionTasks.length > 0 && session && session.id) {
+            console.log('Linking pre-added tasks to new session:', session.id, localSessionTasks.map(t => t.id));
+            localSessionTasks.forEach(t => {
+              this.techniqueService.addTaskToFocusSession(session.id, t.id).subscribe({
+                next: () => console.log(`Linked task ${t.id} to session ${session.id}`),
+                error: (err) => console.error(`Error linking task ${t.id} to session ${session.id}:`, err)
+              });
+            });
+          }
+
+          this.startTimerInterval();
+        },
+        error: (err) => {
+          console.error('Error creating focus session:', err);
+          this.isRunning = false;
+        }
+      });
+    } else {
+      // Session exists, resume it
+      const sessionId = this.techniqueService.currentFocusSessionId();
+      if (sessionId) {
+        this.techniqueService.updateFocusSessionStatus(sessionId, 'in_progress').subscribe({
+          next: () => {
+            this.focusSessionStatus = 'in_progress';
+            this.startTimerInterval();
+          },
+          error: (err) => {
+            console.error('Error updating session status:', err);
+            this.isRunning = false;
+          }
+        });
+      }
+    }
+  }
+
+  private startTimerInterval(): void {
     this.timerIntervalSubscription = interval(1000).subscribe(() => {
       if (this.timeLeft() > 0) {
         this.timeLeft.update(value => value - 1);
         this.updateTimerDisplay();
         this.updateProgressCircle();
       } else {
-        this.stopTimer();
+        // Timer expired - stop interval and mark session as complete
+        if (this.timerIntervalSubscription) {
+          this.timerIntervalSubscription.unsubscribe();
+          this.timerIntervalSubscription = null;
+        }
+        this.isRunning = false;
+
+        // Complete session first (PATCH status='completed')
+        this.completeSession();
+
+        // Then play sound and switch mode
         this.playNotificationSound();
         this.switchToNextMode();
       }
     });
+  }
+
+  private completeSession(): void {
+    const sessionId = this.techniqueService.currentFocusSessionId();
+    if (sessionId) {
+      this.techniqueService.updateFocusSessionStatus(sessionId, 'completed').subscribe({
+        next: () => {
+          this.focusSessionStatus = 'completed';
+          this.techniqueService.currentFocusSessionId.set(null);
+          this.sessionTasks.set([]);
+          console.log('Session completed');
+        },
+        error: (err) => console.error('Error completing session:', err)
+      });
+    }
   }
 
   stopTimer(): void {
@@ -196,9 +243,24 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
       this.timerIntervalSubscription = null;
     }
     this.isRunning = false;
+
+    // Pause the focus session
+    const sessionId = this.techniqueService.currentFocusSessionId();
+    if (sessionId) {
+      this.techniqueService.updateFocusSessionStatus(sessionId, 'paused').subscribe({
+        next: () => {
+          this.focusSessionStatus = 'paused';
+          console.log('Session paused');
+        },
+        error: (err) => console.error('Error pausing session:', err)
+      });
+    }
   }
 
   resetTimer(): void {
+    // Complete the session on reset
+    this.completeSession();
+
     this.stopTimer();
     if (this.currentMode === 'work') {
       this.timeLeft.set(this.currentTechnique.workTime);
@@ -220,6 +282,13 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
         this.renderer.removeClass(button, 'active');
       }
     });
+    // If switching to a break while a focus session exists, complete it first
+    const sessionId = this.techniqueService.currentFocusSessionId();
+    if (index !== 0 && sessionId) {
+      console.log('Completing active session before switching to break:', sessionId);
+      this.completeSession();
+    }
+
     this.activeTabIndex.set(index);
     this.stopTimer();
 
@@ -258,46 +327,16 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   changeTechnique(event: Event): void {
-    this.techniqueService.fetchTechniques().subscribe(() => {
-      const selectedValue = (event.target as HTMLSelectElement).value.replace(/-/g, ' ').trim();
-
-      // ahora para obtener el texto :
-
-      const selectedText = (event.target as HTMLSelectElement).options[
-        (event.target as HTMLSelectElement).selectedIndex
-      ].textContent;
-
-      // IMPORTANT: Re-format the textContent to match the keys in your techniquesMap
-      // Assuming your map keys are lowercase and spaces/special chars are replaced with hyphens
-      if (!selectedText) { // Add a check for null/undefined textContent
-        console.error("No text content found for selected option.");
-        return;
-      }
-      this.currentTechnique = this.techniqueService.techniquesMap()[selectedText];
-      console.log('selectedValue:', selectedValue);
-      console.log('selectedText:', selectedText);
-      console.log('techniquesMap:', this.techniqueService.techniquesMap()); 
-      this.currentMode = 'work';
-      this.timeLeft.set(this.currentTechnique.workTime);
-      this.updateTimerDisplay();
-      this.updateProgressCircle();
-
-      if (this.tabButtons && this.tabButtons.nativeElement) {
-        const tabButtonsArray = Array.from(this.tabButtons.nativeElement);
-        this.renderer.setProperty(tabButtonsArray[0], 'textContent', 'Sesión de concentración');
-        this.renderer.setProperty(tabButtonsArray[1], 'textContent', 'Descanso Corto');
-        if (tabButtonsArray.length > 2) {
-        if (this.currentTechnique.longBreak > 0) {
-          this.renderer.setStyle(tabButtonsArray[2], 'display', 'block');
-          this.renderer.setProperty(tabButtonsArray[2], 'textContent', 'Descanso Largo');
-        } else {
-          this.renderer.setStyle(tabButtonsArray[2], 'display', 'none');
-        }
-      }
-      }
-      this.resetTimer();
-      this.pomodoroCount = 0;
-    });
+    const selectedValue = (event.target as HTMLSelectElement).value;
+    const technique = this.techniqueService.getTechnique(selectedValue);
+    if (!technique) return;
+    this.currentTechnique = technique;
+    this.currentMode = 'work';
+    this.timeLeft.set(this.currentTechnique.workTime);
+    this.updateTimerDisplay();
+    this.updateProgressCircle();
+    this.resetTimer();
+    this.pomodoroCount = 0;
   }
 
   showNewTechniqueModal(): void {
@@ -321,26 +360,15 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
       this.techniqueService.addTechnique(technique).subscribe({
         next: (createdTechnique) => {
-          // Actualizar select
-          const techniqueId = createdTechnique.name.toLowerCase().replace(/\s+/g, '-');
-          const option = this.renderer.createElement('option');
-          this.renderer.setProperty(option, 'value', techniqueId);
-          this.renderer.setProperty(option, 'textContent', createdTechnique.name);
-          this.renderer.appendChild(this.techniqueSelect.nativeElement, option);
-
-          // Seleccionar nuevo valor
-          this.renderer.setProperty(this.techniqueSelect.nativeElement, 'value', techniqueId);
-
-          // Actualizar UI
-          setTimeout(() => {
-            this.changeTechnique({ target: this.techniqueSelect.nativeElement } as any);
-            this.setActiveTab(0);
-          }, 0);
-
-          this.isNewTechniqueModalVisible.set(false);
+          // Service updates signals; just set currentTechnique to created one
+          this.currentTechnique = createdTechnique;
+          this.currentMode = 'work';
+          this.timeLeft.set(this.currentTechnique.workTime);
+          this.updateTimerDisplay();
+          this.updateProgressCircle();
           this.setActiveTab(0);
+          this.isNewTechniqueModalVisible.set(false);
           this.newTechniqueForm.reset();
-
           alert(`Técnica "${createdTechnique.name}" creada con éxito.`);
         },
         error: (err) => {
@@ -348,7 +376,6 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
           alert('Error al guardar la técnica. Intenta de nuevo.');
         }
       });
-
     } else {
       alert('Por favor, completa todos los campos requeridos correctamente.');
     }
@@ -377,5 +404,94 @@ export class TechniquesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   hideFloatingTimer(): void {
     this.isFloatingTimerVisible = false;
+  }
+
+  toggleTaskComplete(task: Task): void {
+    this.taskService.toggleComplete(task);
+  }
+
+  addTaskToSession(task: Task): void {
+    // Do not allow adding tasks when not in work mode
+    if (this.currentMode !== 'work') {
+      console.warn('Cannot add tasks during break mode:', this.currentMode);
+      return;
+    }
+    const current = this.sessionTasks();
+    const taskAlreadyInSession = current.find(t => t.id === task.id);
+
+    console.log('🔵 addTaskToSession called for task:', task.title, 'ID:', task.id);
+    console.log('   Task already in session?', !!taskAlreadyInSession);
+    console.log('   Current session ID:', this.techniqueService.currentFocusSessionId());
+    console.log('   Is running?', this.isRunning);
+
+    if (!taskAlreadyInSession) {
+      // Add to local state
+      this.sessionTasks.set([...current, task]);
+      console.log('✅ Task added to sessionTasks signal');
+
+      // Add task to focus session in backend if session exists
+      const sessionId = this.techniqueService.currentFocusSessionId();
+      if (sessionId) {
+        console.log('📤 Posting to addTaskToFocusSession with sessionId:', sessionId);
+        this.techniqueService.addTaskToFocusSession(sessionId, task.id).subscribe({
+          next: () => {
+            console.log('✅ Task added to focus session on backend');
+          },
+          error: (err) => {
+            console.error('❌ Error adding task to focus session:', err);
+            // Remove from local state if failed
+            this.removeTaskFromSession(task.id);
+          }
+        });
+      } else {
+        console.log('⚠️ No active session - task added locally only');
+      }
+    } else {
+      console.log('⚠️ Task already in session');
+    }
+  }
+
+  removeTaskFromSession(taskId: number): void {
+    console.log('🔴 removeTaskFromSession called with taskId:', taskId);
+    const sessionId = this.techniqueService.currentFocusSessionId();
+    console.log('   Current session ID:', sessionId);
+
+    // If session exists, delete from backend first
+    if (sessionId) {
+      console.log('📤 Posting DELETE to removeTaskFromFocusSession...');
+      this.techniqueService.removeTaskFromFocusSession(sessionId, taskId).subscribe({
+        next: () => {
+          // Only remove from local state if API call succeeds
+          console.log('✅ Task removed from backend, now removing from local state');
+          const current = this.sessionTasks();
+          this.sessionTasks.set(current.filter(t => t.id !== taskId));
+        },
+        error: (err) => {
+          console.error('❌ Error removing task from focus session:', err);
+        }
+      });
+    } else {
+      // No session, just remove from local state
+      console.log('⚠️ No active session, removing from local state only');
+      const current = this.sessionTasks();
+      this.sessionTasks.set(current.filter(t => t.id !== taskId));
+    }
+  }
+
+  toggleSessionTaskComplete(task: Task): void {
+    if (!this.isRunning) return; // Only allow if session is active
+    // Toggle completion status via TaskService
+    this.taskService.toggleComplete(task);
+
+    // If the task was pending and user marked it completed, remove it from the
+    // local sessionTasks list so it no longer appears in the session UI.
+    if (task.status !== 'completed') {
+      const current = this.sessionTasks();
+      this.sessionTasks.set(current.filter(t => t.id !== task.id));
+    }
+  }
+
+  isTaskInSession(taskId: number): boolean {
+    return this.sessionTasks().some(t => t.id === taskId);
   }
 }

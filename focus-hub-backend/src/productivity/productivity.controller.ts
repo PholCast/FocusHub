@@ -148,6 +148,22 @@ export class ProductivityController {
     return this.productivityService.removeFocusSessionTask(+id);
   }
 
+
+  @Delete('focus-sessions/:sessionId/tasks/:taskId')
+@ApiOperation({ summary: 'Remove a task from a focus session' })
+removeTaskFromFocusSession(
+  @Param('sessionId') sessionId: string,
+  @Param('taskId') taskId: string,
+  @Request() req
+) {
+  const userId = req.user.userId;
+  return this.productivityService.removeTaskFromFocusSession(
+    +sessionId,
+    +taskId,
+    userId
+  );
+}
+
   @Get('stats')
   async getUserStats(@Request() req) {
     const userId = req.user.userId;

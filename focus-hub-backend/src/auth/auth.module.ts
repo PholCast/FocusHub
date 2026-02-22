@@ -9,7 +9,7 @@ import { AuthController } from './auth.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/user.entity';
-import { MyLogger } from 'src/logger.service';
+// import { MyLogger } from 'src/logger.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User]),
@@ -24,7 +24,7 @@ import { MyLogger } from 'src/logger.service';
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy,MyLogger],
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
   exports: [AuthService],
 })
