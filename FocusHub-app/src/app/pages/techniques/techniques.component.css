@@ -175,7 +175,7 @@ select {
     margin-bottom: 0.75rem;
     padding: 0.8rem;
     border-radius: 0.5rem;
-    background-color:white;
+    background: var(--card-background);
     font-weight: 500;
 
 }
